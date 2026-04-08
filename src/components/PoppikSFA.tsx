@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 
 // API Base URL
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 // Safe Storage Helper to prevent SecurityError in restricted environments
 const createSafeStorage = () => {
@@ -1187,7 +1187,10 @@ const PoppikSFA: React.FC = () => {
       } else {
         setCurrentScreen('dashboard');
       }
-    } catch (err) { alert("Login Failed!"); }
+    } catch (err: any) { 
+      const errorMsg = err.response?.data?.error || err.message || "Login Failed!";
+      alert("Login Failed: " + errorMsg); 
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {

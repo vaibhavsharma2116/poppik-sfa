@@ -37,7 +37,7 @@ ChartJS.register(
   ArcElement
 );
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 interface AdminDashboardViewProps {
   token: string | null;
@@ -117,10 +117,10 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ token }) => {
                 <Marker key={user.id} position={[user.latitude, user.longitude]}>
                   <Popup>
                     <div className="p-2">
-                      <p className="font-black text-slate-800 text-lg">{user.name}</p>
-                      <p className="text-sm text-slate-500 font-bold">{user.phone}</p>
+                      <p className="font-black text-slate-800 text-lg">{user?.name || 'Unknown'}</p>
+                      <p className="text-sm text-slate-500 font-bold">{user?.phone || 'No Phone'}</p>
                       <div className="mt-2 pt-2 border-t border-slate-100 flex items-center text-xs text-poppik-green font-black">
-                        <Clock className="w-3 h-3 mr-1" /> Punched In: {new Date(user.timestamp).toLocaleTimeString()}
+                        <Clock className="w-3 h-3 mr-1" /> Punched In: {user?.timestamp ? new Date(user.timestamp).toLocaleTimeString() : 'N/A'}
                       </div>
                     </div>
                   </Popup>
