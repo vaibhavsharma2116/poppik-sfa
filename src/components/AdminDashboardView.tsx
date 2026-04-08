@@ -11,8 +11,8 @@ import {
   Legend,
   ArcElement
 } from 'chart.js';
-import { Bar, Pie } from 'react-chartjs-2';
-import { AlertTriangle, Map as MapIcon, BarChart3, Package, User, Clock, RefreshCw } from 'lucide-react';
+import { Bar } from 'react-chartjs-2';
+import { AlertTriangle, Map as MapIcon, BarChart3, Package, Clock } from 'lucide-react';
 import axios from 'axios';
 
 // Fix Leaflet marker icon issue

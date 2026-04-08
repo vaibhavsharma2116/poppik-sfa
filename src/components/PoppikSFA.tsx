@@ -18,7 +18,6 @@ import {
   BarChart3,
   Clock,
   ChevronRight,
-  Settings,
   LogOut,
   Target,
   Bell,
@@ -33,7 +32,6 @@ import {
   RefreshCw,
   CloudUpload,
   MessageCircle,
-  Share2,
   Phone,
   Hash,
   ShieldCheck,
@@ -266,13 +264,11 @@ const ScreenWrapper: React.FC<{
   isOnline?: boolean, 
   pendingSyncCount?: number,
   notifications?: Notification[],
-  setNotifications?: React.Dispatch<React.SetStateAction<Notification[]>>,
   onSync?: () => void,
-  api: any,
   onProfileClick?: () => void,
   onViewAllNotifications?: () => void,
   markAllRead?: () => void
-}> = ({ children, title, showBack, backAction, user, isSidebarOpen, setIsSidebarOpen, isOnline = true, pendingSyncCount = 0, notifications = [], setNotifications, onSync, api, onProfileClick, onViewAllNotifications, markAllRead }) => {
+}> = ({ children, title, showBack, backAction, user, isSidebarOpen, setIsSidebarOpen, isOnline = true, pendingSyncCount = 0, notifications = [], onSync, onProfileClick, onViewAllNotifications, markAllRead }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showConnectionDetails, setShowConnectionDetails] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
@@ -382,7 +378,7 @@ const ScreenWrapper: React.FC<{
             <button 
               onClick={() => {
                 setShowNotifications(!showNotifications);
-                if (!showNotifications) markAllRead();
+                if (!showNotifications && markAllRead) markAllRead();
               }}
               className="p-2 text-slate-500 hover:bg-slate-100 rounded-full relative mr-2 transition-colors"
             >
@@ -471,11 +467,10 @@ const ScreenWrapper: React.FC<{
 };
 
 const AttendanceView: React.FC<{
-  user: any,
   isPunchedIn: boolean,
   onPunch: (type: 'IN' | 'OUT') => void,
   api: any
-}> = ({ user, isPunchedIn, onPunch, api }) => {
+}> = ({ isPunchedIn, onPunch, api }) => {
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaveData, setLeaveData] = useState({ startDate: '', endDate: '', reason: '' });
@@ -708,7 +703,7 @@ const AttendanceView: React.FC<{
 const StatCard: React.FC<{icon: React.ReactNode, value: string, label: string, sub: string, trend: string}> = ({icon, value, label, sub, trend}) => (
   <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm flex flex-col hover:shadow-2xl transition-all group">
     <div className="flex items-center justify-between mb-6">
-       <div className="p-4 bg-slate-50 rounded-2xl group-hover:scale-110 transition-transform">{React.cloneElement(icon as React.ReactElement, { className: 'w-8 h-8' })}</div>
+       <div className="p-4 bg-slate-50 rounded-2xl group-hover:scale-110 transition-transform">{React.cloneElement(icon as React.ReactElement, { className: 'w-8 h-8' } as any)}</div>
        <span className="text-[10px] font-black text-poppik-green bg-green-50 px-3 py-1.5 rounded-full uppercase">{trend}</span>
     </div>
     <p className="text-3xl font-black text-slate-800 mb-1">{value}</p>
@@ -719,22 +714,14 @@ const StatCard: React.FC<{icon: React.ReactNode, value: string, label: string, s
 
 const SidebarNavItem: React.FC<{icon: React.ReactNode, label: string, screen: Screen, current: Screen, onClick: (s: Screen) => void}> = ({icon, label, screen, current, onClick}) => (
    <button onClick={() => onClick(screen)} className={`w-full flex items-center space-x-4 p-4 rounded-2xl transition-all font-bold ${current === screen ? 'bg-poppik-green text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-      {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}<span className="text-base">{label}</span>
+      {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' } as any)}<span className="text-base">{label}</span>
    </button>
 );
 
 const BottomNavItem: React.FC<{icon: React.ReactNode, label: string, screen: Screen, currentScreen: Screen, setCurrentScreen: (s: Screen) => void}> = ({icon, label, screen, currentScreen, setCurrentScreen}) => (
   <button onClick={() => setCurrentScreen(screen)} className={`flex flex-col items-center space-y-1 transition-all flex-1 py-2 rounded-2xl ${currentScreen === screen ? 'text-poppik-green' : 'text-slate-400'}`}>
-    {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}<span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+    {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' } as any)}<span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
   </button>
-);
-
-const ProfileLink: React.FC<{icon: React.ReactNode, label: string}> = ({icon, label}) => (
-    <button className="w-full p-6 flex items-center space-x-4 text-left hover:bg-slate-50 transition-all group border-b border-slate-50">
-        <div className="text-slate-400 group-hover:text-poppik-green transition-colors">{React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' })}</div>
-        <span className="font-bold text-lg text-slate-700 flex-1">{label}</span>
-        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-all" />
-    </button>
 );
 
 const NotificationsView: React.FC<{ notifications: Notification[], markAllRead: () => void }> = ({ notifications, markAllRead }) => {
@@ -802,7 +789,7 @@ const NotificationsView: React.FC<{ notifications: Notification[], markAllRead: 
 
 const DashboardCard: React.FC<{icon: React.ReactNode, title: string, onClick: () => void, color: string}> = ({icon, title, onClick, color}) => (
   <div onClick={onClick} className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-2xl hover:border-poppik-green transition-all group">
-    <div className={`p-5 bg-slate-50 rounded-3xl mb-4 group-hover:scale-110 transition-transform ${color}`}>{React.cloneElement(icon as React.ReactElement, { size: 32 })}</div>
+    <div className={`p-5 bg-slate-50 rounded-3xl mb-4 group-hover:scale-110 transition-transform ${color}`}>{React.cloneElement(icon as React.ReactElement, { size: 32 } as any)}</div>
     <h3 className="text-lg font-black text-slate-800">{title}</h3>
   </div>
 );
@@ -926,7 +913,7 @@ const PoppikSFA: React.FC = () => {
         alert(`Punched ${type} successfully!`);
         fetchNotifications();
       } catch (err) { alert(`Punch ${type} failed`); }
-    }, (err) => alert("Location access denied. Attendance requires location."), { timeout: 10000 }); // 10 seconds timeout
+    }, (_err) => alert("Location access denied. Attendance requires location."), { timeout: 10000 }); // 10 seconds timeout
   };
 
   const fetchNotifications = async () => {
@@ -1422,7 +1409,6 @@ const PoppikSFA: React.FC = () => {
       body: tableData,
       theme: 'plain',
       headStyles: { 
-        borderBottom: { color: [128, 0, 128], width: 1 }, 
         textColor: [50, 50, 50], 
         fontStyle: 'bold', 
         fontSize: 8,
@@ -1633,7 +1619,7 @@ const PoppikSFA: React.FC = () => {
          </div>
          <div className="flex-1 overflow-y-auto pt-16 md:pt-0">
             {currentScreen === 'dashboard' && (
-               <ScreenWrapper title="Dashboard" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+               <ScreenWrapper title="Dashboard" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                  <div className="space-y-8">
                   <div className="bg-gradient-to-r from-poppik-green to-emerald-800 rounded-3xl p-8 text-white shadow-xl shadow-green-900/20 relative overflow-hidden">
                     <div className="relative z-10">
@@ -1782,13 +1768,13 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'notifications' && (
-               <ScreenWrapper title="Notifications" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+               <ScreenWrapper title="Notifications" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                  <NotificationsView notifications={notifications} markAllRead={markAllRead} />
                </ScreenWrapper>
              )}
 
              {currentScreen === 'addClient' && (
-              <ScreenWrapper title="Add New Client" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+              <ScreenWrapper title="Add New Client" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="max-w-3xl mx-auto space-y-8">
                   {/* Form Header */}
                   <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex items-center space-x-6">
@@ -1978,7 +1964,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'createOrder' && (
-              <ScreenWrapper title="Select Outlet" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+              <ScreenWrapper title="Select Outlet" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="space-y-8">
                   <div className="relative max-w-4xl mx-auto w-full group">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6" />
@@ -2091,7 +2077,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'productCatalog' && (
-              <ScreenWrapper title="Product Catalog" showBack backAction={() => setCurrentScreen('createOrder')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+              <ScreenWrapper title="Product Catalog" showBack backAction={() => setCurrentScreen('createOrder')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="space-y-8 pb-32">
                   {/* Header Info */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
@@ -2238,7 +2224,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'cart' && (
-              <ScreenWrapper title="Review Cart" showBack backAction={() => setCurrentScreen('productCatalog')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+              <ScreenWrapper title="Review Cart" showBack backAction={() => setCurrentScreen('productCatalog')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="max-w-4xl mx-auto space-y-8 pb-32">
                   <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
                     <div className="flex items-center space-x-4 mb-8 pb-6 border-b border-slate-100">
@@ -2303,7 +2289,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'reports' && (
-              <ScreenWrapper title="Business Reports" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+              <ScreenWrapper title="Business Reports" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="space-y-8">
                   <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
                     <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center"><Calendar className="w-6 h-6 mr-3 text-poppik-green" /> Day-wise Summary</h2>
@@ -2419,7 +2405,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'orders' && (
-              <ScreenWrapper title="Order History" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+              <ScreenWrapper title="Order History" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                     {orders.map(order => (
                         <div key={order.id} onClick={() => setViewingOrder(order)} className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group">
@@ -2450,7 +2436,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'profile' && (
-              <ScreenWrapper title="My Profile" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+              <ScreenWrapper title="My Profile" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="max-w-4xl mx-auto space-y-8">
                   <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm flex flex-col items-center text-center">
                       <div className="w-32 h-32 md:w-40 md:h-40 bg-poppik-beige rounded-full flex items-center justify-center border-8 border-slate-50 shadow-inner mb-6 relative">
@@ -2484,13 +2470,13 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'attendance' && (
-              <ScreenWrapper title="Attendance & Leaves" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
-                <AttendanceView user={user} isPunchedIn={isPunchedIn} onPunch={handlePunch} api={api} />
+              <ScreenWrapper title="Attendance & Leaves" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+                <AttendanceView isPunchedIn={isPunchedIn} onPunch={handlePunch} api={api} />
               </ScreenWrapper>
             )}
 
             {currentScreen === 'inventory' && (
-              <ScreenWrapper title="Inventory Management" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')}>
+              <ScreenWrapper title="Inventory Management" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
                 <div className="space-y-8">
                   <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
@@ -2699,7 +2685,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'adminDashboard' && (
-              <ScreenWrapper title="Admin Dashboard" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')}>
+              <ScreenWrapper title="Admin Dashboard" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
                 <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <StatCard icon={<User className="text-blue-600" />} value={adminStats?.userCount?.toString() || '0'} label="Total Users" sub="Admin & Sales" trend="System" />
@@ -2742,7 +2728,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'adminReports' && (
-              <ScreenWrapper title="Sales Performance Analysis" showBack backAction={() => setCurrentScreen('adminDashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')}>
+              <ScreenWrapper title="Sales Performance Analysis" showBack backAction={() => setCurrentScreen('adminDashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
                 <div className="space-y-8">
                    {adminReports.map(salesman => (
                      <div key={salesman.id} className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
@@ -2759,7 +2745,7 @@ const PoppikSFA: React.FC = () => {
                         <div className="p-8">
                            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Recent Outlet Orders & Activity</h4>
                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {salesman.recentOrders.map(order => (
+                              {salesman.recentOrders.map((order: any) => (
                                 <div key={order.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
                                    <div><p className="font-bold text-slate-800">{order.outletName}</p><p className="text-xs text-slate-400">{new Date(order.date).toLocaleDateString()}</p></div>
                                    <div className="text-right"><p className="font-black text-slate-800">₹{order.amount}</p><p className="text-[10px] font-bold text-poppik-green uppercase">Success</p></div>
@@ -2775,7 +2761,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'adminLeaves' && (
-              <ScreenWrapper title="Leave Requests Management" showBack backAction={() => setCurrentScreen('adminDashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')}>
+              <ScreenWrapper title="Leave Requests Management" showBack backAction={() => setCurrentScreen('adminDashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
                 <div className="space-y-8">
                   <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
                     <div className="overflow-x-auto">
@@ -2851,7 +2837,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'adminUsers' && (
-              <ScreenWrapper title="User Management" showBack backAction={() => setCurrentScreen('adminDashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')}>
+              <ScreenWrapper title="User Management" showBack backAction={() => setCurrentScreen('adminDashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
                 <div className="space-y-8">
                     <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-center mb-8">
@@ -2901,7 +2887,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'adminAddUser' && (
-              <ScreenWrapper title="Add New Member" showBack backAction={() => setCurrentScreen('adminUsers')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api} onProfileClick={() => setCurrentScreen('profile')}>
+              <ScreenWrapper title="Add New Member" showBack backAction={() => setCurrentScreen('adminUsers')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
                 <div className="max-w-2xl mx-auto bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
                   <form onSubmit={handleRegister} className="space-y-6">
                       <div>
@@ -2957,7 +2943,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'adminEditUser' && (
-              <ScreenWrapper title="Edit Member" showBack backAction={() => setCurrentScreen('adminUsers')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} setNotifications={setNotifications} onSync={syncOrders} api={api}>
+              <ScreenWrapper title="Edit Member" showBack backAction={() => setCurrentScreen('adminUsers')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders}>
                 <div className="max-w-2xl mx-auto bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
                   <form onSubmit={handleUpdateUser} className="space-y-6">
                       <div>
