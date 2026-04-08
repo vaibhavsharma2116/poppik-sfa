@@ -39,8 +39,8 @@ import {
   Navigation
 } from 'lucide-react';
 
-// API Base URL
-const API_BASE = 'http://localhost:5000/api';
+// API Base URL - Use relative path for production (Nginx proxy) and Vite proxy for dev
+const API_BASE = '/api';
 
 // Safe Storage Helper to prevent SecurityError in restricted environments
 const createSafeStorage = () => {

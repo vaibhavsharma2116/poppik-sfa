@@ -37,7 +37,7 @@ ChartJS.register(
   ArcElement
 );
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 interface AdminDashboardViewProps {
   token: string | null;
