@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int            @id @default(autoincrement())
+  name           String
+  role           String         @default("sales")
+  phone          String         @unique
+  passwordHash   String
+  latitude       Float?
+  longitude      Float?
+  lastLocationAt DateTime?
+  createdAt      DateTime       @default(now())
+  attendances    Attendance[]
+  leaves         Leave[]
+  notifications  Notification[]
+  orders         Order[]
+  outlets        Outlet[]
+}
+
+model Leave {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  startDate DateTime
+  endDate   DateTime
+  reason    String
+  status    String   @default("Pending")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  timestamp DateTime @default(now())
+  latitude  Float?
+  longitude Float?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Outlet {
+  id         Int          @id @default(autoincrement())
+  name       String
+  beat_name  String?
+  area       String?
+  city       String?
+  owner_name String?
+  owner_no   String?
+  class      OutletClass? @default(C)
+  gstNumber  String?
+  address    String
+  latitude   Float?
+  longitude  Float?
+  userId     Int?
+  createdAt  DateTime     @default(now())
+  orders     Order[]
+  user       User?        @relation(fields: [userId], references: [id])
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  productCode String?
+  category    String
+  stock       Int         @default(0)
+  boxSize     String?
+  hsn         String?
+  gst         Float?      @default(0)
+  mrp         Float?      @default(0)
+  price       Float       @default(0)
+  image       String?
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  outletId    Int
+  userId      Int
+  totalAmount Float
+  status      String      @default("Pending")
+  createdAt   DateTime    @default(now())
+  outlet      Outlet      @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+}
+
+model OrderItem {
+  id          Int     @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  quantity    Int
+  priceAtTime Float
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id])
+}
+
+enum OutletClass {
+  A_PLUS
+  A
+  B_PLUS
+  B
+  C_PLUS
+  C
+}
