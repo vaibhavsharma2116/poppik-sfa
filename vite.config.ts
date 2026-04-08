@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vite.dev/config/
 export default defineConfig({
   server: {
+    host: true, // Expose to network (for mobile testing)
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

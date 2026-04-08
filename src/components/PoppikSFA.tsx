@@ -1176,8 +1176,11 @@ const PoppikSFA: React.FC = () => {
   // Auth Handlers
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Attempting login with:", loginForm.phone);
+    console.log("API_BASE is:", API_BASE);
     try {
       const res = await axios.post(`${API_BASE}/auth/login`, loginForm);
+      console.log("Login successful:", res.data.user.name);
       setToken(res.data.token);
       setUser(res.data.user);
       safeStorage.setItem('token', res.data.token);
@@ -1187,7 +1190,16 @@ const PoppikSFA: React.FC = () => {
       } else {
         setCurrentScreen('dashboard');
       }
-    } catch (err) { alert("Login Failed!"); }
+    } catch (err: any) { 
+      console.error("Login Error Details:", err);
+      if (err.response) {
+        alert(`Login Failed: ${err.response.data.error || err.response.statusText}`);
+      } else if (err.request) {
+        alert("Login Failed: No response from server. Check your internet or if the server is down.");
+      } else {
+        alert(`Login Failed: ${err.message}`);
+      }
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
