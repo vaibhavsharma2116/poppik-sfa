@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://api.poppik.in',
+          target: env.VITE_API_URL || 'https://api.poppik.in',
           changeOrigin: true,
         }
       }
