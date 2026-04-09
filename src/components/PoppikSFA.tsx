@@ -1178,17 +1178,40 @@ const PoppikSFA: React.FC = () => {
     e.preventDefault();
     try {
       const res = await axios.post(`${API_BASE}/auth/login`, loginForm);
+      
+      // Safety check for response structure
+      if (!res.data || typeof res.data !== 'object') {
+        throw new Error("Invalid response from server. Please check if backend is running.");
+      }
+      
+      if (!res.data.user) {
+        throw new Error(res.data.error || "Login successful but user data missing.");
+      }
+
       setToken(res.data.token);
       setUser(res.data.user);
       safeStorage.setItem('token', res.data.token);
       safeStorage.setItem('user', JSON.stringify(res.data.user));
+      
       if (res.data.user.role === 'admin') {
         setCurrentScreen('adminDashboard');
       } else {
         setCurrentScreen('dashboard');
       }
     } catch (err: any) { 
-      const errorMsg = err.response?.data?.error || err.message || "Login Failed!";
+      let errorMsg = "Login Failed!";
+      if (err.response) {
+        // Server responded with a status code outside of 2xx
+        errorMsg = err.response.data?.error || `Server Error (${err.response.status})`;
+        if (typeof err.response.data === 'string' && err.response.data.includes('<!DOCTYPE html>')) {
+          errorMsg = "Backend proxy error: Server returned HTML instead of JSON. Check Nginx config.";
+        }
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMsg = "No response from server. Is the backend running?";
+      } else {
+        errorMsg = err.message;
+      }
       alert("Login Failed: " + errorMsg); 
     }
   };
