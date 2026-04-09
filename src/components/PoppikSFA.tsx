@@ -1651,8 +1651,13 @@ const PoppikSFA: React.FC = () => {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
          <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 z-[1010] px-6 flex items-center justify-between">
-            <span className="font-black text-xl text-slate-800">Poppik</span>
-            <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-100 rounded-xl"><Menu className="w-6 h-6 text-slate-600" /></button>
+            <div className="flex items-center space-x-3">
+               <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center">
+                 <img src="/logo.png" alt="Poppik Logo" className="w-full h-full object-contain" />
+               </div>
+               <span className="font-black text-xl text-slate-800 tracking-tighter">Poppik SFA</span>
+            </div>
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-100 rounded-xl transition-all active:scale-95 shadow-sm"><Menu className="w-6 h-6 text-slate-600" /></button>
          </div>
          <div className="flex-1 overflow-y-auto pt-16 md:pt-0">
             {currentScreen === 'dashboard' && (
