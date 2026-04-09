@@ -40,7 +40,9 @@ import {
 } from 'lucide-react';
 
 // API Base URL
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api` 
+  : '/api';
 
 // Safe Storage Helper to prevent SecurityError in restricted environments
 const createSafeStorage = () => {
