@@ -1094,16 +1094,25 @@ const PoppikSFA: React.FC = () => {
 
   const fetchAdminData = async () => {
     try {
-      const [statsRes, usersRes, reportsRes, leavesRes] = await Promise.all([
+      // Use individual calls or allSettled to prevent one failure from blocking others
+      const [statsRes, usersRes, reportsRes, leavesRes] = await Promise.allSettled([
         api.get('/admin/stats'),
         api.get('/admin/users'),
         api.get('/admin/sales-reports'),
         api.get('/admin/leaves')
       ]);
-      setAdminStats(statsRes.data);
-      setAdminUsers(usersRes.data);
-      setAdminReports(reportsRes.data);
-      setAdminLeaves(leavesRes.data);
+
+      if (statsRes.status === 'fulfilled') setAdminStats(statsRes.value.data);
+      if (usersRes.status === 'fulfilled') setAdminUsers(usersRes.value.data);
+      if (reportsRes.status === 'fulfilled') setAdminReports(reportsRes.value.data);
+      if (leavesRes.status === 'fulfilled') setAdminLeaves(leavesRes.value.data);
+      
+      // Log any errors for debugging
+      [statsRes, usersRes, reportsRes, leavesRes].forEach((res, i) => {
+        if (res.status === 'rejected') {
+          console.error(`Admin API ${i} failed:`, res.reason);
+        }
+      });
     } catch (err) { console.error("Error fetching admin data", err); }
   };
 
