@@ -276,6 +276,9 @@ const ScreenWrapper: React.FC<{
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
+  void isSidebarOpen;
+  void setIsSidebarOpen;
+
   const handleCheckConnection = () => {
     setIsCheckingConnection(true);
     setTimeout(() => {
