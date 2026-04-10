@@ -1530,66 +1530,66 @@ const PoppikSFA: React.FC = () => {
   if (currentScreen === 'login') {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 p-6">
-        <div className="bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl">
-          <div className="flex flex-col items-center mb-10">
-              <div className="w-28 h-28 rounded-2xl overflow-hidden flex items-center justify-center mb-4">
+        <div className="bg-white w-full max-w-md rounded-3xl md:rounded-[40px] p-6 md:p-10 shadow-2xl">
+          <div className="flex flex-col items-center mb-8 md:mb-10">
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden flex items-center justify-center mb-4">
                  <img src="/logo.png" alt="Poppik Logo" className="w-full h-full object-contain" />
               </div>
-              <h1 className="text-3xl font-black text-slate-800">Poppik SFA</h1>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">{isRegistering ? 'Create New Account' : 'Marketing Portal'}</p>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-800">Poppik SFA</h1>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-xs mt-2">{isRegistering ? 'Create New Account' : 'Marketing Portal'}</p>
            </div>
            <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-6">
               {isRegistering && (
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase mb-2">Full Name</label>
+                  <label className="block text-[10px] md:text-xs font-black text-slate-400 uppercase mb-2">Full Name</label>
                   <input 
                     type="text" 
                     value={loginForm.name}
                     onChange={e => setLoginForm({...loginForm, name: e.target.value})}
-                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
+                    className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
                     placeholder="Enter full name"
                   />
                 </div>
               )}
               <div>
-                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">Phone Number</label>
+                 <label className="block text-[10px] md:text-xs font-black text-slate-400 uppercase mb-2">Phone Number</label>
                  <input 
                    type="text" 
                    value={loginForm.phone}
                    onChange={e => setLoginForm({...loginForm, phone: e.target.value})}
-                   className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
+                   className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
                    placeholder="Enter phone"
                  />
               </div>
               <div>
-                 <label className="block text-xs font-black text-slate-400 uppercase mb-2">Password</label>
+                 <label className="block text-[10px] md:text-xs font-black text-slate-400 uppercase mb-2">Password</label>
                  <input 
                    type="password" 
                    value={loginForm.password}
                    onChange={e => setLoginForm({...loginForm, password: e.target.value})}
-                   className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
+                   className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
                    placeholder="••••••••"
                  />
               </div>
               {isRegistering && (
                 <div>
-                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Account Role</label>
+                   <label className="block text-[10px] md:text-xs font-black text-slate-400 uppercase mb-2">Account Role</label>
                    <select 
                      value={loginForm.role}
                      onChange={e => setLoginForm({...loginForm, role: e.target.value})}
-                     className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold appearance-none"
+                     className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold appearance-none"
                    >
                      <option value="sales">Sales Associate</option>
                      <option value="admin">Admin Manager</option>
                    </select>
                 </div>
               )}
-              <button type="submit" className="w-full py-5 bg-poppik-green text-white font-black rounded-2xl shadow-xl shadow-green-900/20 hover:scale-[1.02] active:scale-95 transition-all">
+              <button type="submit" className="w-full py-4 md:py-5 bg-poppik-green text-white font-black rounded-2xl shadow-xl shadow-green-900/20 hover:scale-[1.02] active:scale-95 transition-all">
                  {isRegistering ? 'Register Now' : 'Login to Account'}
               </button>
            </form>
            <div className="mt-8 text-center">
-              <button onClick={() => setIsRegistering(!isRegistering)} className="text-poppik-green font-bold text-sm hover:underline">
+              <button onClick={() => setIsRegistering(!isRegistering)} className="text-poppik-green font-bold text-xs md:text-sm hover:underline">
                  {isRegistering ? 'Already have an account? Login' : 'Need an account? Register here'}
               </button>
            </div>
