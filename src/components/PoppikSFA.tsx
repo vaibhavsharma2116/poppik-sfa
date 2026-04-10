@@ -299,7 +299,7 @@ const ScreenWrapper: React.FC<{
           <div className="flex flex-col">
             {title && <h1 className="text-xl md:text-2xl font-bold text-slate-800">{title}</h1>}
             {!isOnline && (
-              <span className="flex items-center text-[10px] font-black text-red-500 uppercase tracking-widest">
+              <span className="hidden md:flex items-center text-[10px] font-black text-red-500 uppercase tracking-widest">
                 <WifiOff className="w-3 h-3 mr-1" /> Offline Mode
               </span>
             )}
@@ -322,6 +322,19 @@ const ScreenWrapper: React.FC<{
             >
               {isOnline ? <Wifi className="w-4 h-4 mr-2" /> : <WifiOff className="w-4 h-4 mr-2" />}
               <span className="text-[10px] font-black uppercase tracking-widest">
+                {isOnline ? 'Online' : 'Offline'}
+              </span>
+            </button>
+            <button 
+              onClick={() => setShowConnectionDetails(!showConnectionDetails)}
+              className={`md:hidden flex items-center px-2 py-1 rounded-full border transition-all ${
+                isOnline 
+                ? 'bg-green-50 text-poppik-green border-green-100' 
+                : 'bg-red-50 text-red-500 border-red-100'
+              }`}
+            >
+              {isOnline ? <Wifi className="w-3 h-3 mr-1" /> : <WifiOff className="w-3 h-3 mr-1" />}
+              <span className="text-[9px] font-black uppercase tracking-widest">
                 {isOnline ? 'Online' : 'Offline'}
               </span>
             </button>
