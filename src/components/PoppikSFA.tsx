@@ -394,7 +394,7 @@ const ScreenWrapper: React.FC<{
 
             {/* Notifications Dropdown */}
             {showNotifications && (
-              <div className="absolute top-full right-0 mt-3 w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 z-[1020] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="fixed md:absolute top-[70px] md:top-full left-4 right-4 md:left-auto md:right-0 mt-3 md:w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 z-[1020] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                   <h3 className="font-black text-slate-800 text-lg">Notifications</h3>
                   <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
@@ -455,13 +455,9 @@ const ScreenWrapper: React.FC<{
                <User className="text-slate-600 w-6 h-6" />
              </div>
           </div>
-          
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 md:hidden">
-             <Menu className="w-6 h-6 text-slate-600" />
-          </button>
         </div>
       </header>
-      <main className="flex-1 p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-4 md:p-8 lg:p-10 max-w-7xl mx-auto w-full">
         {children}
       </main>
     </div>
@@ -524,28 +520,28 @@ const AttendanceView: React.FC<{
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="px-4 md:px-0 space-y-6 md:space-y-8 animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         {/* Punch In/Out Section */}
-        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
-          <div className="flex items-center space-x-4 mb-8">
-            <div className="p-4 bg-blue-50 rounded-2xl text-blue-600">
-              <Clock size={32} />
+        <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[40px] border border-slate-100 shadow-sm">
+          <div className="flex items-center space-x-4 mb-6 md:mb-8">
+            <div className="p-3 md:p-4 bg-blue-50 rounded-xl md:rounded-2xl text-blue-600">
+              <Clock size={28} className="md:w-8 md:h-8" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-800">Daily Attendance</h2>
-              <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Mark your presence</p>
+              <h2 className="text-xl md:text-2xl font-black text-slate-800">Daily Attendance</h2>
+              <p className="text-slate-400 font-bold text-[10px] md:text-sm uppercase tracking-widest">Mark your presence</p>
             </div>
           </div>
 
-          <div className="p-10 bg-slate-50 rounded-[32px] border border-slate-100 flex flex-col items-center justify-center text-center">
-            <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${isPunchedIn ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
-              <Clock size={48} className={isPunchedIn ? 'animate-pulse' : ''} />
+          <div className="p-6 md:p-10 bg-slate-50 rounded-2xl md:rounded-[32px] border border-slate-100 flex flex-col items-center justify-center text-center">
+            <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mb-4 md:mb-6 ${isPunchedIn ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
+              <Clock size={40} className={`md:w-12 md:h-12 ${isPunchedIn ? 'animate-pulse' : ''}`} />
             </div>
-            <h3 className="text-xl font-black text-slate-800 mb-2">
+            <h3 className="text-lg md:text-xl font-black text-slate-800 mb-2">
               {isPunchedIn ? 'You are currently Punched In' : 'Ready to start your day?'}
             </h3>
-            <p className="text-slate-500 font-medium mb-8 max-w-xs">
+            <p className="text-sm md:text-base text-slate-500 font-medium mb-6 md:mb-8 max-w-xs">
               {isPunchedIn 
                 ? 'Your location is being tracked live for sales operations.' 
                 : 'Please punch in to begin your work day and start location tracking.'}
@@ -553,7 +549,7 @@ const AttendanceView: React.FC<{
             
             <button 
               onClick={() => onPunch(isPunchedIn ? 'OUT' : 'IN')}
-              className={`w-full py-5 rounded-2xl text-lg font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 ${
+              className={`w-full py-3 md:py-5 rounded-xl md:rounded-2xl text-sm md:text-lg font-black uppercase tracking-widest md:tracking-[0.2em] shadow-xl transition-all active:scale-95 ${
                 isPunchedIn 
                 ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-200' 
                 : 'bg-poppik-green text-white hover:bg-green-600 shadow-green-200'
@@ -565,31 +561,31 @@ const AttendanceView: React.FC<{
         </div>
 
         {/* Calendar & Leave Section */}
-        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
+        <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[40px] border border-slate-100 shadow-sm">
+          <div className="flex items-center justify-between mb-6 md:mb-8">
             <div className="flex items-center space-x-4">
-              <div className="p-4 bg-purple-50 rounded-2xl text-purple-600">
-                <Calendar size={32} />
+              <div className="p-3 md:p-4 bg-purple-50 rounded-xl md:rounded-2xl text-purple-600">
+                <Calendar size={28} className="md:w-8 md:h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-800">Leave Calendar</h2>
-                <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">{monthNames[today.getMonth()]} {today.getFullYear()}</p>
+                <h2 className="text-xl md:text-2xl font-black text-slate-800">Leave Calendar</h2>
+                <p className="text-slate-400 font-bold text-[10px] md:text-sm uppercase tracking-widest">{monthNames[today.getMonth()]} {today.getFullYear()}</p>
               </div>
             </div>
             <button 
               onClick={() => setShowLeaveModal(true)}
-              className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+              className="p-3 md:p-4 bg-slate-900 text-white rounded-xl md:rounded-2xl hover:bg-slate-800 transition-all shadow-lg active:scale-95"
             >
-              <Plus size={24} />
+              <Plus size={20} className="md:w-6 md:h-6" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 mb-4">
+          <div className="grid grid-cols-7 gap-1 md:gap-2 mb-4">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
               <div key={`${day}-${idx}`} className="text-center text-[10px] font-black text-slate-400 uppercase py-2">{day}</div>
             ))}
             {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-              <div key={`empty-${i}`} className="p-3"></div>
+              <div key={`empty-${i}`} className="p-2 md:p-3"></div>
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
@@ -598,7 +594,7 @@ const AttendanceView: React.FC<{
                 <div 
                   key={day} 
                   onClick={() => handleDateClick(day)}
-                  className={`p-3 text-center rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+                  className={`p-2 md:p-3 text-center rounded-lg md:rounded-xl text-xs md:text-sm font-bold transition-colors cursor-pointer ${
                     isToday ? 'bg-poppik-green text-white' : 'hover:bg-slate-50 text-slate-600'
                   }`}
                 >
@@ -608,17 +604,17 @@ const AttendanceView: React.FC<{
             })}
           </div>
 
-          <div className="mt-8">
+          <div className="mt-6 md:mt-8">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Recent Leave Requests</h4>
             <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               {leaves.length > 0 ? (
                 leaves.map(leave => (
-                  <div key={leave.id} className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-100">
+                  <div key={leave.id} className="p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-between border border-slate-100">
                     <div>
-                      <p className="text-sm font-bold text-slate-800">{new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}</p>
-                      <p className="text-[10px] text-slate-500 mt-1 truncate max-w-[150px]">{leave.reason}</p>
+                      <p className="text-xs md:text-sm font-bold text-slate-800">{new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}</p>
+                      <p className="text-[9px] md:text-[10px] text-slate-500 mt-1 truncate max-w-[120px] md:max-w-[150px]">{leave.reason}</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${
                       leave.status === 'Approved' ? 'bg-green-100 text-poppik-green' :
                       leave.status === 'Rejected' ? 'bg-red-100 text-red-500' :
                       'bg-orange-100 text-orange-500'
@@ -637,14 +633,14 @@ const AttendanceView: React.FC<{
 
       {/* Leave Application Modal */}
       {showLeaveModal && (
-        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-2xl font-black text-slate-800">Apply for Leave</h3>
-              <button onClick={() => setShowLeaveModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={28} /></button>
+        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden">
+            <div className="p-6 md:p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-xl md:text-2xl font-black text-slate-800">Apply for Leave</h3>
+              <button onClick={() => setShowLeaveModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={24} className="md:w-7 md:h-7" /></button>
             </div>
-            <form onSubmit={handleApplyLeave} className="p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+            <form onSubmit={handleApplyLeave} className="p-6 md:p-8 space-y-5 md:space-y-6">
+              <div className="grid grid-cols-2 gap-4 md:gap-6">
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Start Date</label>
                   <input 
@@ -652,7 +648,7 @@ const AttendanceView: React.FC<{
                     required
                     value={leaveData.startDate}
                     onChange={e => setLeaveData({...leaveData, startDate: e.target.value})}
-                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" 
+                    className="w-full p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold text-sm md:text-base" 
                   />
                 </div>
                 <div>
@@ -662,7 +658,7 @@ const AttendanceView: React.FC<{
                     required
                     value={leaveData.endDate}
                     onChange={e => setLeaveData({...leaveData, endDate: e.target.value})}
-                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" 
+                    className="w-full p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold text-sm md:text-base" 
                   />
                 </div>
               </div>
@@ -673,22 +669,22 @@ const AttendanceView: React.FC<{
                   rows={4}
                   value={leaveData.reason}
                   onChange={e => setLeaveData({...leaveData, reason: e.target.value})}
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold resize-none"
+                  className="w-full p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold resize-none text-sm md:text-base"
                   placeholder="Tell us why you need leave..."
                 ></textarea>
               </div>
-              <div className="flex space-x-4 pt-4">
+              <div className="flex space-x-3 md:space-x-4 pt-2 md:pt-4">
                 <button 
                   type="button" 
                   onClick={() => setShowLeaveModal(false)}
-                  className="flex-1 py-4 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all"
+                  className="flex-1 py-3 md:py-4 bg-slate-100 text-slate-600 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-xl md:rounded-2xl hover:bg-slate-200 transition-all"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={isLoading}
-                  className="flex-2 py-4 bg-poppik-green text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all flex items-center justify-center"
+                  className="flex-2 py-3 md:py-4 bg-poppik-green text-white text-[10px] md:text-xs font-black uppercase tracking-widest rounded-xl md:rounded-2xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all flex items-center justify-center"
                 >
                   {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                   Submit Application
@@ -728,47 +724,47 @@ const BottomNavItem: React.FC<{icon: React.ReactNode, label: string, screen: Scr
 
 const NotificationsView: React.FC<{ notifications: Notification[], markAllRead: () => void }> = ({ notifications, markAllRead }) => {
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <div>
-          <h2 className="text-3xl font-black text-slate-800">All Notifications</h2>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Stay updated with your activities</p>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-800">All Notifications</h2>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-xs mt-1">Stay updated with your activities</p>
         </div>
         <button 
           onClick={markAllRead}
-          className="px-6 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all flex items-center space-x-2 shadow-sm"
+          className="w-full md:w-auto px-6 py-3 bg-white border border-slate-200 rounded-xl md:rounded-2xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center space-x-2 shadow-sm"
         >
           <CheckCheck className="w-4 h-4 text-poppik-green" />
           <span>Mark All as Read</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
+      <div className="bg-white rounded-3xl md:rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
         {notifications.length > 0 ? (
           <div className="divide-y divide-slate-50">
             {notifications.map((n) => (
-              <div key={n.id} className={`p-8 hover:bg-slate-50/50 transition-all flex gap-6 items-start ${!n.isRead ? 'bg-blue-50/20' : ''}`}>
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+              <div key={n.id} className={`p-6 md:p-8 hover:bg-slate-50/50 transition-all flex gap-4 md:gap-6 items-start ${!n.isRead ? 'bg-blue-50/20' : ''}`}>
+                <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
                   n.type === 'order' ? 'bg-orange-100 text-orange-600' :
                   n.type === 'attendance' ? 'bg-blue-100 text-blue-600' :
                   'bg-green-100 text-poppik-green'
                 }`}>
-                  {n.type === 'order' ? <ShoppingCart className="w-7 h-7" /> :
-                   n.type === 'attendance' ? <Clock className="w-7 h-7" /> :
-                   <Bell className="w-7 h-7" />}
+                  {n.type === 'order' ? <ShoppingCart className="w-5 h-5 md:w-7 h-7" /> :
+                   n.type === 'attendance' ? <Clock className="w-5 h-5 md:w-7 h-7" /> :
+                   <Bell className="w-5 h-5 md:w-7 h-7" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="font-black text-slate-800 text-lg leading-tight">{n.title}</p>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-1 gap-2">
+                    <p className="font-black text-slate-800 text-base md:text-lg leading-tight">{n.title}</p>
+                    <span className="w-fit text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
                       {new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <p className="text-slate-500 font-medium text-base leading-relaxed">{n.message}</p>
+                  <p className="text-slate-500 font-medium text-sm md:text-base leading-relaxed">{n.message}</p>
                   {!n.isRead && (
-                    <div className="mt-4 flex items-center space-x-2">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                      <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">New Notification</span>
+                    <div className="mt-3 md:mt-4 flex items-center space-x-2">
+                      <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                      <span className="text-[9px] md:text-[10px] font-black text-blue-500 uppercase tracking-widest">New Notification</span>
                     </div>
                   )}
                 </div>
@@ -776,12 +772,12 @@ const NotificationsView: React.FC<{ notifications: Notification[], markAllRead: 
             ))}
           </div>
         ) : (
-          <div className="p-24 text-center">
-            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Bell className="w-12 h-12 text-slate-200" />
+          <div className="p-12 md:p-24 text-center">
+            <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Bell className="w-10 h-10 md:w-12 md:h-12 text-slate-200" />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">No notifications yet</h3>
-            <p className="text-slate-400 font-bold max-w-xs mx-auto">We'll notify you here when there's something new to check.</p>
+            <p className="text-slate-400 font-bold max-w-xs mx-auto text-sm md:text-base">We'll notify you here when there's something new to check.</p>
           </div>
         )}
       </div>
@@ -790,9 +786,9 @@ const NotificationsView: React.FC<{ notifications: Notification[], markAllRead: 
 };
 
 const DashboardCard: React.FC<{icon: React.ReactNode, title: string, onClick: () => void, color: string}> = ({icon, title, onClick, color}) => (
-  <div onClick={onClick} className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-2xl hover:border-poppik-green transition-all group">
-    <div className={`p-5 bg-slate-50 rounded-3xl mb-4 group-hover:scale-110 transition-transform ${color}`}>{React.cloneElement(icon as React.ReactElement, { size: 32 } as any)}</div>
-    <h3 className="text-lg font-black text-slate-800">{title}</h3>
+  <div onClick={onClick} className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-2xl hover:border-poppik-green transition-all group">
+    <div className={`p-4 md:p-5 bg-slate-50 rounded-2xl md:rounded-3xl mb-3 md:mb-4 group-hover:scale-110 transition-transform ${color}`}>{React.cloneElement(icon as React.ReactElement, { size: 28 } as any)}</div>
+    <h3 className="text-sm md:text-lg font-black text-slate-800">{title}</h3>
   </div>
 );
 
@@ -1360,7 +1356,7 @@ const PoppikSFA: React.FC = () => {
     // Top Left TAX INVOICE
     doc.setFontSize(9);
     doc.setTextColor(50);
-    doc.text("TAX INVOICE", 15, 10);
+    doc.text("ORDER FORM", 15, 10);
     doc.setDrawColor(200);
     doc.rect(38, 6, 42, 6);
     doc.text("ORIGINAL FOR RECIPIENT", 40, 10.5);
@@ -1519,8 +1515,10 @@ const PoppikSFA: React.FC = () => {
     const message = `*Poppik Lifestyle - Order Confirmation*\n\n` +
       `*Order ID:* #${order.id}\n` +
       `*Date:* ${new Date(order.createdAt).toLocaleDateString()}\n` +
-      `*Outlet:* ${order.outlet.name}\n\n` +
-      `*Items:*\n` +
+      `*Outlet:* ${order.outlet.name}\n` +
+      `*Address:* ${order.outlet.address}\n` +
+      (order.outlet.owner_no ? `*Contact:* ${order.outlet.owner_no}\n` : '') +
+      `\n*Items:*\n` +
       order.orderItems.map(item => `- ${item.product.name} (x${item.quantity}): ₹${item.quantity * item.priceAtTime}`).join('\n') +
       `\n\n*Total Amount: ₹${order.totalAmount}*\n\n` +
       `Thank you for shopping with Poppik! Visit us at poppiklifestyle.com`;
@@ -1662,21 +1660,21 @@ const PoppikSFA: React.FC = () => {
          <div className="flex-1 overflow-y-auto pt-16 md:pt-0">
             {currentScreen === 'dashboard' && (
                <ScreenWrapper title="Dashboard" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
-                 <div className="space-y-8">
-                  <div className="bg-gradient-to-r from-poppik-green to-emerald-800 rounded-3xl p-8 text-white shadow-xl shadow-green-900/20 relative overflow-hidden">
+                 <div className="space-y-6 md:space-y-8">
+                  <div className="bg-gradient-to-r from-poppik-green to-emerald-800 rounded-2xl md:rounded-3xl p-6 md:p-8 text-white shadow-xl shadow-green-900/20 relative overflow-hidden">
                     <div className="relative z-10">
-                        <h2 className="text-lg opacity-80 mb-1">Good morning,</h2>
-                        <h1 className="text-3xl font-black mb-6">{user?.name || 'Valued User'}</h1>
+                        <h2 className="text-base md:text-lg opacity-80 mb-1">Good morning,</h2>
+                        <h1 className="text-2xl md:text-3xl font-black mb-6">{user?.name || 'Valued User'}</h1>
                         <div className="flex flex-col sm:flex-row gap-4">
                           <button 
                             onClick={() => handlePunch(isPunchedIn ? 'OUT' : 'IN')}
-                            className={`px-8 py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center space-x-3 shadow-lg ${
+                            className={`px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl font-bold text-base md:text-lg transition-all flex items-center justify-center space-x-3 shadow-lg ${
                               isPunchedIn 
                               ? 'bg-red-500/20 text-white border border-red-500/30 backdrop-blur-sm hover:bg-red-500/30' 
                               : 'bg-white text-poppik-green hover:scale-[1.02]'
                             }`}
                           >
-                            <Clock className="w-6 h-6" />
+                            <Clock className="w-5 h-5 md:w-6 md:h-6" />
                             <span>{isPunchedIn ? 'Punch Out Now' : 'Punch In Now'}</span>
                           </button>
                         </div>
@@ -1685,72 +1683,72 @@ const PoppikSFA: React.FC = () => {
                   </div>
 
                   {/* 4-Card Dashboard for Salesman */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     <DashboardCard icon={<Clock />} title="Attendance" onClick={() => setCurrentScreen('attendance')} color="text-blue-600" />
                     <DashboardCard icon={<ShoppingCart />} title="Create Order" onClick={() => setCurrentScreen('createOrder')} color="text-orange-600" />
                     <DashboardCard icon={<User />} title="Add Client" onClick={() => setCurrentScreen('addClient')} color="text-poppik-gold" />
                     <DashboardCard icon={<BarChart3 />} title="Reports" onClick={() => setCurrentScreen('reports')} color="text-purple-600" />
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                        <h3 className="text-xl font-bold mb-6 flex items-center"><Target className="w-6 h-6 mr-3 text-poppik-green" /> Quick Actions</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                    <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 className="text-lg md:text-xl font-bold mb-6 flex items-center"><Target className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Quick Actions</h3>
                         <div className="grid grid-cols-1 gap-4">
-                          <button onClick={() => setCurrentScreen('createOrder')} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl hover:bg-poppik-beige transition-all group border border-slate-100 hover:border-poppik-gold/30">
+                          <button onClick={() => setCurrentScreen('createOrder')} className="flex items-center justify-between p-4 md:p-5 bg-slate-50 rounded-xl md:rounded-2xl hover:bg-poppik-beige transition-all group border border-slate-100 hover:border-poppik-gold/30">
                               <div className="flex items-center space-x-4">
-                                <div className="bg-white p-3 rounded-xl shadow-sm"><Store className="w-6 h-6 text-poppik-green" /></div>
-                                <div className="text-left"><p className="font-bold text-slate-800">Start Field Visit</p><p className="text-sm text-slate-500">Check-in to shops & take orders</p></div>
+                                <div className="bg-white p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm"><Store className="w-5 h-5 md:w-6 md:h-6 text-poppik-green" /></div>
+                                <div className="text-left"><p className="font-bold text-sm md:text-base text-slate-800">Start Field Visit</p><p className="text-xs md:text-sm text-slate-500">Check-in to shops & take orders</p></div>
                               </div>
-                              <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-1 transition-all" />
+                              <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-slate-400 group-hover:translate-x-1 transition-all" />
                           </button>
                         </div>
                     </div>
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                        <h3 className="text-xl font-bold mb-6">Recent Orders</h3>
+                    <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 className="text-lg md:text-xl font-bold mb-6">Recent Orders</h3>
                         <div className="space-y-4">
                            {orders.slice(0, 3).map(o => (
                              <div 
                                key={o.id} 
                                onClick={() => setViewingOrder(o)}
-                               className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-poppik-green cursor-pointer transition-all group"
+                               className="flex items-center justify-between p-3 bg-slate-50 rounded-lg md:rounded-xl border border-slate-100 hover:border-poppik-green cursor-pointer transition-all group"
                              >
                                 <div>
-                                  <p className="font-bold text-slate-800 group-hover:text-poppik-green transition-colors">{o.outlet.name}</p>
-                                  <p className="text-[10px] text-slate-500 font-bold uppercase">{new Date(o.createdAt).toLocaleDateString()} • {(o.orderItems?.length || o.items?.length || 0)} Products</p>
+                                  <p className="font-bold text-sm md:text-base text-slate-800 group-hover:text-poppik-green transition-colors">{o.outlet.name}</p>
+                                  <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase">{new Date(o.createdAt).toLocaleDateString()} • {(o.orderItems?.length || o.items?.length || 0)} Products</p>
                                 </div>
-                                <p className="font-black text-poppik-green">₹{o.totalAmount.toLocaleString()}</p>
+                                <p className="font-black text-sm md:text-base text-poppik-green">₹{o.totalAmount.toLocaleString()}</p>
                              </div>
                            ))}
-                           {orders.length === 0 && <p className="text-slate-400 text-sm italic text-center py-4">No orders placed yet</p>}
+                           {orders.length === 0 && <p className="text-slate-400 text-xs md:text-sm italic text-center py-4">No orders placed yet</p>}
                         </div>
                     </div>
                   </div>
 
                   {/* Order Detail Modal */}
                   {viewingOrder && (
-                    <div className="fixed inset-0 z-[1050] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-                      <div className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                    <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+                      <div className="bg-white w-full max-w-2xl rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        <div className="p-5 md:p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 shrink-0">
                           <div>
-                            <h3 className="text-2xl font-black text-slate-800">Order Details</h3>
-                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Order #{viewingOrder.id} • {new Date(viewingOrder.createdAt).toLocaleDateString()}</p>
+                            <h3 className="text-xl md:text-2xl font-black text-slate-800">Order Details</h3>
+                            <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Order #{viewingOrder.id} • {new Date(viewingOrder.createdAt).toLocaleDateString()}</p>
                           </div>
-                          <button onClick={() => setViewingOrder(null)} className="p-3 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-2xl transition-all"><X size={24} /></button>
+                          <button onClick={() => setViewingOrder(null)} className="p-2 md:p-3 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-xl md:rounded-2xl transition-all"><X size={20} className="md:w-6 md:h-6" /></button>
                         </div>
                         
-                        <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                        <div className="p-5 md:p-8 overflow-y-auto custom-scrollbar flex-1">
                           {/* Outlet Info */}
-                          <div className="mb-8 p-6 bg-slate-50 rounded-[32px] border border-slate-100">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Customer Information</h4>
+                          <div className="mb-6 md:mb-8 p-4 md:p-6 bg-slate-50 rounded-2xl md:rounded-[32px] border border-slate-100">
+                            <h4 className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Customer Information</h4>
                             <div className="flex items-start space-x-4">
-                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                                <Store className="w-6 h-6 text-poppik-green" />
+                              <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                                <Store className="w-5 h-5 md:w-6 md:h-6 text-poppik-green" />
                               </div>
                               <div>
-                                <p className="font-black text-lg text-slate-800">{viewingOrder.outlet.name}</p>
-                                <p className="text-sm text-slate-500 font-medium leading-relaxed">{viewingOrder.outlet.address}</p>
-                                {viewingOrder.outlet.owner_no && <p className="text-sm text-slate-500 font-bold mt-2 flex items-center"><Phone className="w-3.5 h-3.5 mr-2" /> {viewingOrder.outlet.owner_no}</p>}
-                                {viewingOrder.outlet.gstNumber && <p className="text-sm text-slate-500 font-bold mt-1 flex items-center"><ShieldCheck className="w-3.5 h-3.5 mr-2" /> GST: {viewingOrder.outlet.gstNumber}</p>}
+                                <p className="font-black text-base md:text-lg text-slate-800">{viewingOrder.outlet.name}</p>
+                                <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">{viewingOrder.outlet.address}</p>
+                                {viewingOrder.outlet.owner_no && <p className="text-xs md:text-sm text-slate-500 font-bold mt-2 flex items-center"><Phone className="w-3 h-3 md:w-3.5 md:h-3.5 mr-2" /> {viewingOrder.outlet.owner_no}</p>}
+                                {viewingOrder.outlet.gstNumber && <p className="text-xs md:text-sm text-slate-500 font-bold mt-1 flex items-center"><ShieldCheck className="w-3 h-3 md:w-3.5 md:h-3.5 mr-2" /> GST: {viewingOrder.outlet.gstNumber}</p>}
                               </div>
                             </div>
                           </div>
@@ -1786,19 +1784,19 @@ const PoppikSFA: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex gap-4">
+                        <div className="p-5 md:p-8 bg-slate-50/50 border-t border-slate-50 flex flex-col sm:flex-row gap-3 md:gap-4 shrink-0">
                           <button 
                             onClick={() => { shareOnWhatsApp(viewingOrder); setViewingOrder(null); }}
-                            className="flex-1 py-4 bg-green-500 text-white font-black rounded-2xl shadow-lg shadow-green-900/20 hover:bg-green-600 transition-all flex items-center justify-center space-x-2"
+                            className="flex-1 py-3 md:py-4 bg-green-500 text-white font-black rounded-xl md:rounded-2xl shadow-lg shadow-green-900/20 hover:bg-green-600 transition-all flex items-center justify-center space-x-2 text-sm md:text-base"
                           >
-                            <MessageCircle size={20} />
+                            <MessageCircle size={18} className="md:w-5 md:h-5" />
                             <span>Share on WhatsApp</span>
                           </button>
                           <button 
                             onClick={() => { generateInvoice(viewingOrder); setViewingOrder(null); }}
-                            className="flex-1 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center space-x-2"
+                            className="flex-1 py-3 md:py-4 bg-slate-900 text-white font-black rounded-xl md:rounded-2xl shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center space-x-2 text-sm md:text-base"
                           >
-                            <FileText size={20} />
+                            <FileText size={18} className="md:w-5 md:h-5" />
                             <span>Download Invoice</span>
                           </button>
                         </div>
@@ -1817,29 +1815,29 @@ const PoppikSFA: React.FC = () => {
 
              {currentScreen === 'addClient' && (
               <ScreenWrapper title="Add New Client" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
-                <div className="max-w-3xl mx-auto space-y-8">
+                <div className="max-w-3xl mx-auto px-4 md:px-0 space-y-6 md:space-y-8">
                   {/* Form Header */}
-                  <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm flex items-center space-x-6">
-                    <div className="w-16 h-16 bg-poppik-green/10 rounded-2xl flex items-center justify-center">
-                      <Plus className="w-8 h-8 text-poppik-green" />
+                  <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm flex items-center space-x-4 md:space-x-6">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-poppik-green/10 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+                      <Plus className="w-6 h-6 md:w-8 md:h-8 text-poppik-green" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-slate-800">Outlet Registration</h3>
-                      <p className="text-slate-500 font-medium">Add a new partner to the Poppik network.</p>
+                      <h3 className="text-xl md:text-2xl font-black text-slate-800">Outlet Registration</h3>
+                      <p className="text-sm md:text-base text-slate-500 font-medium">Add a new partner to the Poppik network.</p>
                     </div>
                   </div>
 
-                  <form onSubmit={handleAddClient} className="space-y-8 pb-12">
+                  <form onSubmit={handleAddClient} className="space-y-6 md:space-y-8 pb-12">
                     {/* Section 1: Shop Information */}
-                    <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
-                      <div className="flex items-center space-x-3 mb-8">
+                    <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm">
+                      <div className="flex items-center space-x-3 mb-6 md:mb-8">
                         <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
                           <Building2 className="w-5 h-5 text-poppik-green" />
                         </div>
-                        <h4 className="text-lg font-black text-slate-800 uppercase tracking-wider">Shop Details</h4>
+                        <h4 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-wider">Shop Details</h4>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Shop/Outlet Name</label>
                           <div className="relative">
@@ -1903,15 +1901,15 @@ const PoppikSFA: React.FC = () => {
                     </div>
 
                     {/* Section 2: Contact Person Details */}
-                    <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
-                      <div className="flex items-center space-x-3 mb-8">
+                    <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm">
+                      <div className="flex items-center space-x-3 mb-6 md:mb-8">
                         <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
                           <User className="w-5 h-5 text-poppik-gold" />
                         </div>
-                        <h4 className="text-lg font-black text-slate-800 uppercase tracking-wider">Contact Person</h4>
+                        <h4 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-wider">Contact Person</h4>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Owner / Manager Name</label>
                           <div className="relative">
@@ -1942,15 +1940,15 @@ const PoppikSFA: React.FC = () => {
                     </div>
 
                     {/* Section 3: Location Details */}
-                    <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm">
-                      <div className="flex items-center space-x-3 mb-8">
+                    <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm">
+                      <div className="flex items-center space-x-3 mb-6 md:mb-8">
                         <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
                           <MapPin className="w-5 h-5 text-red-500" />
                         </div>
-                        <h4 className="text-lg font-black text-slate-800 uppercase tracking-wider">Location Info</h4>
+                        <h4 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-wider">Location Info</h4>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 mb-6 md:mb-8">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Area / Landmark</label>
                           <div className="relative">
@@ -1995,7 +1993,7 @@ const PoppikSFA: React.FC = () => {
 
                     <button 
                       type="submit" 
-                      className="w-full py-6 bg-poppik-green text-white text-xl font-black rounded-3xl shadow-2xl shadow-green-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-3"
+                      className="w-full py-5 md:py-6 bg-poppik-green text-white text-lg md:text-xl font-black rounded-2xl md:rounded-3xl shadow-2xl shadow-green-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-3"
                     >
                       <CloudUpload className="w-6 h-6" />
                       <span>Register & Add Client</span>
@@ -2097,17 +2095,17 @@ const PoppikSFA: React.FC = () => {
 
                   {/* Empty State when no outlets exist for this user */}
                   {outlets.length === 0 && !searchQuery && (
-                    <div className="flex flex-col items-center justify-center py-20 px-6 bg-white rounded-[40px] border border-slate-200 shadow-sm text-center">
-                      <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8">
-                        <Store className="w-12 h-12 text-slate-300" />
+                    <div className="flex flex-col items-center justify-center py-12 md:py-20 px-4 md:px-6 bg-white rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm text-center">
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 md:mb-8">
+                        <Store className="w-10 h-10 md:w-12 md:h-12 text-slate-300" />
                       </div>
-                      <h3 className="text-2xl font-black text-slate-800 mb-3">No Outlets Registered Yet</h3>
-                      <p className="text-slate-500 max-w-sm mx-auto font-medium mb-10">
+                      <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-3">No Outlets Registered Yet</h3>
+                      <p className="text-sm md:text-base text-slate-500 max-w-sm mx-auto font-medium mb-8 md:mb-10">
                         It looks like you haven't added any clients to your route. Let's register your first outlet to start taking orders.
                       </p>
                       <button 
                         onClick={() => setCurrentScreen('addClient')} 
-                        className="px-12 py-5 bg-poppik-green text-white font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-green-900/20 flex items-center justify-center space-x-3"
+                        className="px-8 py-4 md:px-12 md:py-5 bg-poppik-green text-white text-base md:text-lg font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-green-900/20 flex items-center justify-center space-x-3"
                       >
                         <Plus className="w-6 h-6" />
                         <span>Register Your First Client</span>
@@ -2159,12 +2157,20 @@ const PoppikSFA: React.FC = () => {
                   <div className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
-                        <thead>
+                        <thead className="hidden md:table-header-group">
                           <tr className="bg-slate-50/50 border-b border-slate-100">
                             <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Item Details</th>
                             <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Category</th>
                             <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Price</th>
                             <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Quantity</th>
+                          </tr>
+                        </thead>
+                        <thead className="table-header-group md:hidden">
+                          <tr className="bg-slate-50/50 border-b border-slate-100">
+                            <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Item Details</th>
+                            <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Quantity</th>
+                            <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Category</th>
+                            <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Price</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -2174,49 +2180,96 @@ const PoppikSFA: React.FC = () => {
                               p.category.toLowerCase().includes(productSearchQuery.toLowerCase())
                             )
                             .map(product => (
-                            <tr key={product.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="px-8 py-6">
-                                <p className="font-bold text-slate-800 text-lg group-hover:text-poppik-green transition-colors">{product.name}</p>
-                                <p className="text-xs text-slate-400 font-medium">SKU: POP-{product.id.toString().padStart(4, '0')}</p>
-                              </td>
-                              <td className="px-8 py-6 text-center">
-                                <span className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest">
-                                  {product.category}
-                                </span>
-                              </td>
-                              <td className="px-8 py-6 text-right">
-                                <p className="font-black text-lg text-slate-800">₹{product.price}</p>
-                              </td>
-                              <td className="px-8 py-6">
-                                <div className="flex items-center justify-center">
-                                  {cart[product.id] > 0 ? (
-                                    <div className="flex items-center bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
-                                      <button 
-                                        onClick={() => removeFromCart(product.id)} 
-                                        className="p-2 text-slate-600 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all"
-                                      >
-                                        <Minus className="w-4 h-4" />
-                                      </button>
-                                      <span className="font-black text-slate-800 w-10 text-center text-lg">{cart[product.id]}</span>
+                            <>
+                              {/* Desktop row (original order) */}
+                              <tr key={`d-${product.id}`} className="hover:bg-slate-50/50 transition-colors group hidden md:table-row">
+                                <td className="px-8 py-6">
+                                  <p className="font-bold text-slate-800 text-lg group-hover:text-poppik-green transition-colors">{product.name}</p>
+                                  <p className="text-xs text-slate-400 font-medium">SKU: POP-{product.id.toString().padStart(4, '0')}</p>
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                  <span className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    {product.category}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-6 text-right">
+                                  <p className="font-black text-lg text-slate-800">₹{product.price}</p>
+                                </td>
+                                <td className="px-8 py-6">
+                                  <div className="flex items-center justify-center">
+                                    {cart[product.id] > 0 ? (
+                                      <div className="flex items-center bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
+                                        <button 
+                                          onClick={() => removeFromCart(product.id)} 
+                                          className="p-2 text-slate-600 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all"
+                                        >
+                                          <Minus className="w-4 h-4" />
+                                        </button>
+                                        <span className="font-black text-slate-800 w-10 text-center text-lg">{cart[product.id]}</span>
+                                        <button 
+                                          onClick={() => addToCart(product.id)} 
+                                          className="p-2 text-slate-600 hover:bg-green-50 hover:text-poppik-green rounded-xl transition-all"
+                                        >
+                                          <Plus className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    ) : (
                                       <button 
                                         onClick={() => addToCart(product.id)} 
-                                        className="p-2 text-slate-600 hover:bg-green-50 hover:text-poppik-green rounded-xl transition-all"
+                                        className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-poppik-green transition-all shadow-md text-sm flex items-center space-x-2"
                                       >
                                         <Plus className="w-4 h-4" />
+                                        <span>Add</span>
                                       </button>
-                                    </div>
-                                  ) : (
-                                    <button 
-                                      onClick={() => addToCart(product.id)} 
-                                      className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-poppik-green transition-all shadow-md text-sm flex items-center space-x-2"
-                                    >
-                                      <Plus className="w-4 h-4" />
-                                      <span>Add</span>
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                              {/* Mobile row (reordered: Quantity, Category, Price) */}
+                              <tr key={`m-${product.id}`} className="hover:bg-slate-50/50 transition-colors group md:hidden table-row">
+                                <td className="px-4 py-6">
+                                  <p className="font-semibold text-slate-800 text-base group-hover:text-poppik-green transition-colors leading-tight">{product.name}</p>
+                                  <p className="text-[10px] text-slate-400 font-medium">SKU: POP-{product.id.toString().padStart(4, '0')}</p>
+                                </td>
+                                <td className="px-4 py-6">
+                                  <div className="flex items-center justify-center">
+                                    {cart[product.id] > 0 ? (
+                                      <div className="flex items-center bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
+                                        <button 
+                                          onClick={() => removeFromCart(product.id)} 
+                                          className="p-2 text-slate-600 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all"
+                                        >
+                                          <Minus className="w-3.5 h-3.5" />
+                                        </button>
+                                        <span className="font-black text-slate-800 w-8 text-center text-base">{cart[product.id]}</span>
+                                        <button 
+                                          onClick={() => addToCart(product.id)} 
+                                          className="p-2 text-slate-600 hover:bg-green-50 hover:text-poppik-green rounded-xl transition-all"
+                                        >
+                                          <Plus className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button 
+                                        onClick={() => addToCart(product.id)} 
+                                        className="px-4 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-poppik-green transition-all shadow-md text-xs flex items-center space-x-2"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        <span>Add</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-6 text-center">
+                                  <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-[9px] font-black uppercase tracking-widest">
+                                    {product.category}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-6 text-right">
+                                  <p className="font-black text-base text-slate-800">₹{product.price}</p>
+                                </td>
+                              </tr>
+                            </>
                           ))}
                         </tbody>
                       </table>
@@ -2237,25 +2290,25 @@ const PoppikSFA: React.FC = () => {
 
                   {/* Review Order Floating Bar */}
                   {cartCount > 0 && (
-                    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-4xl px-6 z-[1030]">
+                    <div className="fixed bottom-[88px] md:bottom-10 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4 md:px-6 z-[1030]">
                         <button 
                           onClick={() => { setCurrentScreen('cart'); setProductSearchQuery(''); }} 
-                          className="w-full bg-poppik-black text-white p-6 rounded-[32px] flex items-center justify-between shadow-2xl hover:scale-[1.02] transition-all border border-white/10 group"
+                          className="w-full bg-poppik-black text-white p-4 md:p-6 rounded-2xl md:rounded-[32px] flex items-center justify-between shadow-2xl hover:scale-[1.02] transition-all border border-white/10 group"
                         >
-                          <div className="flex items-center space-x-6">
-                              <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md relative group-hover:bg-poppik-green transition-colors">
-                                <ShoppingCart className="w-6 h-6" />
-                                <span className="absolute -top-1 -right-1 bg-poppik-green text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-poppik-black font-black">{cartCount}</span>
+                          <div className="flex items-center space-x-3 md:space-x-6">
+                              <div className="bg-white/10 p-2 md:p-3 rounded-xl md:rounded-2xl backdrop-blur-md relative group-hover:bg-poppik-green transition-colors">
+                                <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
+                                <span className="absolute -top-1 -right-1 bg-poppik-green text-[9px] md:text-[10px] w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center border-2 border-poppik-black font-black">{cartCount}</span>
                               </div>
                               <div className="text-left">
-                                <p className="text-[10px] font-bold uppercase opacity-60 tracking-widest mb-0.5">Review Billing</p>
-                                <p className="text-2xl font-black tracking-tight">₹{totalAmount.toLocaleString()}</p>
+                                <p className="text-[8px] md:text-[10px] font-bold uppercase opacity-60 tracking-widest mb-0.5">Review Billing</p>
+                                <p className="text-lg md:text-2xl font-black tracking-tight">₹{totalAmount.toLocaleString()}</p>
                               </div>
                           </div>
-                          <div className="flex items-center space-x-4">
-                            <span className="font-bold text-lg">Continue to Invoice</span>
-                            <div className="p-2 bg-white/10 rounded-xl group-hover:translate-x-1 transition-transform">
-                              <ChevronRight className="w-6 h-6 text-poppik-green" />
+                          <div className="flex items-center space-x-2 md:space-x-4">
+                            <span className="font-bold text-sm md:text-lg">Continue</span>
+                            <div className="p-1.5 md:p-2 bg-white/10 rounded-lg md:rounded-xl group-hover:translate-x-1 transition-transform">
+                              <ChevronRight className="w-4 h-4 md:w-6 md:h-6 text-poppik-green" />
                             </div>
                           </div>
                         </button>
@@ -2332,47 +2385,50 @@ const PoppikSFA: React.FC = () => {
 
             {currentScreen === 'reports' && (
               <ScreenWrapper title="Business Reports" showBack backAction={() => setCurrentScreen('dashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
-                <div className="space-y-8">
-                  <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-                    <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center"><Calendar className="w-6 h-6 mr-3 text-poppik-green" /> Day-wise Summary</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100">
-                         <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Total Attendance</p>
-                         <p className="text-2xl font-black text-blue-800">{dayWiseReport?.totalAttendance || 0}</p>
+                <div className="space-y-6 md:space-y-8">
+                  <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
+                    <h2 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Day-wise Summary</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                      <div className="p-5 md:p-6 bg-blue-50 rounded-xl md:rounded-2xl border border-blue-100">
+                         <p className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Total Attendance</p>
+                         <p className="text-xl md:text-2xl font-black text-blue-800">{dayWiseReport?.totalAttendance || 0}</p>
                       </div>
-                      <div className="p-6 bg-green-50 rounded-2xl border border-green-100">
-                         <p className="text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">Total Sales Value</p>
-                         <p className="text-2xl font-black text-green-800">₹{(dayWiseReport?.totalSalesValue || 0).toLocaleString()}</p>
+                      <div className="p-5 md:p-6 bg-green-50 rounded-xl md:rounded-2xl border border-green-100">
+                         <p className="text-[9px] md:text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">Total Sales Value</p>
+                         <p className="text-xl md:text-2xl font-black text-green-800">₹{(dayWiseReport?.totalSalesValue || 0).toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-                    <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center"><Store className="w-6 h-6 mr-3 text-poppik-green" /> Party-wise History</h2>
+                  <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
+                    <h2 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Store className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Party-wise History</h2>
                     <div className="space-y-4">
                       {partyWiseReport && Object.entries(partyWiseReport).map(([outletName, data]) => (
-                        <div key={outletName} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-6">
+                        <div key={outletName} className="p-5 md:p-6 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100 flex flex-col gap-6">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div><h3 className="font-black text-slate-800 text-lg">{outletName}</h3><p className="text-sm text-slate-500 font-bold">{data.totalOrders} Orders Placed</p></div>
-                            <div className="text-right"><p className="text-xl font-black text-poppik-green">₹{data.totalAmount.toLocaleString()}</p><p className="text-[10px] font-black text-slate-400 uppercase">Life-time Value</p></div>
+                            <div><h3 className="font-black text-slate-800 text-base md:text-lg">{outletName}</h3><p className="text-xs md:text-sm text-slate-500 font-bold">{data.totalOrders} Orders Placed</p></div>
+                            <div className="text-left md:text-right">
+                              <p className="text-lg md:text-xl font-black text-poppik-green">₹{data.totalAmount.toLocaleString()}</p>
+                              <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase">Life-time Value</p>
+                            </div>
                           </div>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                             {data.orders.map(order => (
                               <button 
                                 key={order.id} 
                                 onClick={() => setViewingOrder(order)}
-                                className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-poppik-green hover:shadow-lg transition-all text-left group"
+                                className="p-4 bg-white rounded-xl md:rounded-2xl border border-slate-200 hover:border-poppik-green hover:shadow-lg transition-all text-left group"
                               >
                                 <div className="flex justify-between items-start mb-2">
-                                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Order #{order.id}</span>
-                                  <span className="text-[10px] font-black text-poppik-green uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
+                                  <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Order #{order.id}</span>
+                                  <span className="text-[9px] md:text-[10px] font-black text-poppik-green uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
                                 </div>
                                 <div className="flex justify-between items-end">
                                   <div>
-                                    <p className="font-black text-slate-800">₹{order.totalAmount.toLocaleString()}</p>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">{(order.orderItems?.length || order.items?.length || 0)} Products</p>
+                                    <p className="text-base md:text-lg font-black text-slate-800">₹{order.totalAmount.toLocaleString()}</p>
+                                    <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-tighter">{(order.orderItems?.length || order.items?.length || 0)} Products</p>
                                   </div>
-                                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
+                                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
                                 </div>
                               </button>
                             ))}
@@ -2380,65 +2436,65 @@ const PoppikSFA: React.FC = () => {
                         </div>
                       ))}
                       {(!partyWiseReport || Object.keys(partyWiseReport).length === 0) && (
-                        <p className="text-slate-400 text-sm italic text-center py-4">No party data available yet</p>
+                        <p className="text-slate-400 text-xs md:text-sm italic text-center py-4">No party data available yet</p>
                       )}
                     </div>
                   </div>
 
-                  <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-                    <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center"><MapPin className="w-6 h-6 mr-3 text-poppik-green" /> Location-wise History</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
+                    <h2 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><MapPin className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Location-wise History</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       {locationWiseReport && Object.entries(locationWiseReport).map(([location, data]) => (
-                        <div key={location} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                        <div key={location} className="p-5 md:p-6 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100 flex flex-col justify-between">
                            <div>
-                              <h3 className="font-black text-slate-800 text-lg mb-1">{location}</h3>
+                              <h3 className="font-black text-slate-800 text-base md:text-lg mb-1">{location}</h3>
                               <div className="flex justify-between items-center mb-4">
-                                <p className="text-xs text-slate-500 font-bold uppercase">{data.uniquePartiesCount} Parties</p>
-                                <p className="text-xs text-slate-500 font-bold uppercase">{data.totalOrders} Orders</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase">{data.uniquePartiesCount} Parties</p>
+                                <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase">{data.totalOrders} Orders</p>
                               </div>
                            </div>
                            <div className="pt-4 border-t border-slate-200 flex justify-between items-end">
-                              <p className="text-[10px] font-black text-slate-400 uppercase">Total Sales</p>
-                              <p className="text-xl font-black text-poppik-green">₹{data.totalAmount.toLocaleString()}</p>
+                              <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase">Total Sales</p>
+                              <p className="text-lg md:text-xl font-black text-poppik-green">₹{data.totalAmount.toLocaleString()}</p>
                            </div>
                         </div>
                       ))}
                       {(!locationWiseReport || Object.keys(locationWiseReport).length === 0) && (
-                        <p className="text-slate-400 text-sm italic text-center py-4 col-span-full">No location data available yet</p>
+                        <p className="text-slate-400 text-xs md:text-sm italic text-center py-4 col-span-full">No location data available yet</p>
                       )}
                     </div>
                   </div>
 
-                  <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-                    <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center"><Package className="w-6 h-6 mr-3 text-poppik-green" /> Product-wise History</h2>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left">
+                  <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
+                    <h2 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Package className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Product-wise History</h2>
+                    <div className="overflow-x-auto -mx-5 md:mx-0">
+                      <table className="w-full text-left min-w-[500px] md:min-w-full">
                         <thead>
                           <tr className="border-b border-slate-100">
-                            <th className="pb-4 font-black text-slate-400 uppercase text-xs">Product</th>
-                            <th className="pb-4 font-black text-slate-400 uppercase text-xs">Category</th>
-                            <th className="pb-4 font-black text-slate-400 uppercase text-xs text-center">Qty Sold</th>
-                            <th className="pb-4 font-black text-slate-400 uppercase text-xs text-right">Revenue</th>
+                            <th className="px-5 md:px-0 pb-4 font-black text-slate-400 uppercase text-[10px] md:text-xs">Product</th>
+                            <th className="pb-4 font-black text-slate-400 uppercase text-[10px] md:text-xs">Category</th>
+                            <th className="pb-4 font-black text-slate-400 uppercase text-[10px] md:text-xs text-center">Qty Sold</th>
+                            <th className="px-5 md:px-0 pb-4 font-black text-slate-400 uppercase text-[10px] md:text-xs text-right">Revenue</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                           {productWiseReport && Object.entries(productWiseReport).map(([productName, data]) => (
                             <tr key={productName} className="group hover:bg-slate-50/50 transition-colors">
-                              <td className="py-4">
-                                <p className="font-bold text-slate-800">{productName}</p>
-                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{data.productCode || 'N/A'}</p>
+                              <td className="px-5 md:px-0 py-4">
+                                <p className="font-bold text-slate-800 text-sm md:text-base">{productName}</p>
+                                <p className="text-[9px] md:text-[10px] text-slate-400 font-black uppercase tracking-widest">{data.productCode || 'N/A'}</p>
                               </td>
                               <td className="py-4">
-                                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest">{data.category}</span>
+                                <span className="px-2 md:px-3 py-0.5 md:py-1 bg-slate-100 text-slate-600 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest">{data.category}</span>
                               </td>
-                              <td className="py-4 text-center font-black text-slate-700">{data.totalQuantity}</td>
-                              <td className="py-4 text-right font-black text-poppik-green">₹{data.totalRevenue.toLocaleString()}</td>
+                              <td className="py-4 text-center font-black text-slate-700 text-sm md:text-base">{data.totalQuantity}</td>
+                              <td className="px-5 md:px-0 py-4 text-right font-black text-poppik-green text-sm md:text-base">₹{data.totalRevenue.toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                       {(!productWiseReport || Object.keys(productWiseReport).length === 0) && (
-                        <p className="text-slate-400 text-sm italic text-center py-8">No product data available yet</p>
+                        <p className="text-slate-400 text-xs md:text-sm italic text-center py-8">No product data available yet</p>
                       )}
                     </div>
                   </div>
@@ -2479,31 +2535,31 @@ const PoppikSFA: React.FC = () => {
 
             {currentScreen === 'profile' && (
               <ScreenWrapper title="My Profile" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
-                <div className="max-w-4xl mx-auto space-y-8">
-                  <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm flex flex-col items-center text-center">
-                      <div className="w-32 h-32 md:w-40 md:h-40 bg-poppik-beige rounded-full flex items-center justify-center border-8 border-slate-50 shadow-inner mb-6 relative">
-                          <User className="text-poppik-black w-16 h-16 md:w-20 md:h-20" />
-                          <div className="absolute bottom-1 right-1 bg-poppik-green w-8 h-8 rounded-full border-4 border-white"></div>
+                <div className="max-w-4xl mx-auto px-4 md:px-0 space-y-6 md:space-y-8">
+                  <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm flex flex-col items-center text-center">
+                      <div className="w-28 h-28 md:w-40 md:h-40 bg-poppik-beige rounded-full flex items-center justify-center border-4 md:border-8 border-slate-50 shadow-inner mb-4 md:mb-6 relative">
+                          <User className="text-poppik-black w-14 h-14 md:w-20 md:h-20" />
+                          <div className="absolute bottom-1 right-1 bg-poppik-green w-6 h-6 md:w-8 md:h-8 rounded-full border-2 md:border-4 border-white"></div>
                       </div>
-                      <h1 className="text-3xl font-black text-slate-800">{user?.name || 'Valued User'}</h1>
-                      <p className="text-slate-500 font-bold uppercase tracking-widest text-sm mb-8">{user?.role || 'Sales'} Associate • ID: #{user?.id || '000'}</p>
+                      <h1 className="text-2xl md:text-3xl font-black text-slate-800">{user?.name || 'Valued User'}</h1>
+                      <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-sm mb-6 md:mb-8">{user?.role || 'Sales'} Associate • ID: #{user?.id || '000'}</p>
                       
-                      <div className="w-full max-w-md bg-slate-50 rounded-3xl p-6 space-y-4 mb-8 text-left border border-slate-100">
+                      <div className="w-full max-w-md bg-slate-50 rounded-2xl md:rounded-3xl p-5 md:p-6 space-y-4 mb-6 md:mb-8 text-left border border-slate-100">
                         <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
-                           <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Phone Number</span>
-                           <span className="font-bold text-slate-700">{user?.phone || 'N/A'}</span>
+                           <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Phone Number</span>
+                           <span className="text-sm md:text-base font-bold text-slate-700">{user?.phone || 'N/A'}</span>
                         </div>
                         <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
-                           <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Account Status</span>
-                           <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-widest">Active</span>
+                           <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Account Status</span>
+                           <span className="px-2 md:px-3 py-1 bg-green-100 text-green-700 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest">Active</span>
                         </div>
                         <div className="flex justify-between items-center">
-                           <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Joined On</span>
-                           <span className="font-bold text-slate-700">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</span>
+                           <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Joined On</span>
+                           <span className="text-sm md:text-base font-bold text-slate-700">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</span>
                         </div>
                       </div>
 
-                      <button onClick={handleLogout} className="px-8 py-3 bg-red-50 text-red-600 font-black rounded-xl hover:bg-red-100 transition-colors flex items-center space-x-2">
+                      <button onClick={handleLogout} className="w-full md:w-auto px-8 py-3.5 md:py-3 bg-red-50 text-red-600 font-black rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center space-x-2">
                         <LogOut className="w-5 h-5" /><span className="text-sm">Logout Session</span>
                       </button>
                   </div>
