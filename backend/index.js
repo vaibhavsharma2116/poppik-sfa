@@ -258,7 +258,11 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
           id: o.id,
           outletName: o.outlet.name,
           amount: o.totalAmount,
-          date: o.createdAt
+          date: o.createdAt,
+          orderItems: o.orderItems.map(item => ({
+            productName: item.product.name,
+            quantity: item.quantity
+          }))
         }))
       };
     });
@@ -793,7 +797,13 @@ app.get('/api/reports/location-wise', authenticateToken, async (req, res) => {
     console.log(`[REPORTS] Location-wise report requested by User ID: ${req.user.id}`);
     const orders = await prisma.order.findMany({
       where: { userId: req.user.id },
-      include: { outlet: true }
+      include: { 
+        outlet: true,
+        orderItems: {
+          include: { product: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
     console.log(`[REPORTS] Found ${orders.length} orders for location-wise report.`);
@@ -805,13 +815,46 @@ app.get('/api/reports/location-wise', authenticateToken, async (req, res) => {
         acc[location] = { 
           totalOrders: 0, 
           totalAmount: 0,
-          uniqueParties: new Set()
+          uniqueParties: new Set(),
+          orders: []
         };
       }
       
+      const mappedOrder = {
+        id: order.id,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        status: order.status,
+        outlet: {
+          id: order.outlet.id,
+          name: order.outlet.name,
+          address: order.outlet.address,
+          owner_no: order.outlet.owner_no,
+          gstNumber: order.outlet.gstNumber
+        },
+        orderItems: (order.orderItems || []).map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          priceAtTime: item.priceAtTime,
+          product: item.product ? {
+            id: item.product.id,
+            name: item.product.name,
+            productCode: item.product.productCode,
+            boxSize: item.product.boxSize,
+            price: item.product.price
+          } : null
+        })),
+        items: (order.orderItems || []).map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.priceAtTime
+        }))
+      };
+
       acc[location].totalOrders += 1;
       acc[location].totalAmount += order.totalAmount;
       acc[location].uniqueParties.add(order.outletId);
+      acc[location].orders.push(mappedOrder);
       return acc;
     }, {});
 
@@ -820,7 +863,8 @@ app.get('/api/reports/location-wise', authenticateToken, async (req, res) => {
       finalData[loc] = {
         totalOrders: locationWiseData[loc].totalOrders,
         totalAmount: locationWiseData[loc].totalAmount,
-        uniquePartiesCount: locationWiseData[loc].uniqueParties.size
+        uniquePartiesCount: locationWiseData[loc].uniqueParties.size,
+        orders: locationWiseData[loc].orders
       };
     });
 

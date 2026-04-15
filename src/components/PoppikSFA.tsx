@@ -223,6 +223,7 @@ interface LocationWiseReport {
     totalOrders: number;
     totalAmount: number;
     uniquePartiesCount: number;
+    orders: Order[];
   };
 }
 
@@ -1527,6 +1528,299 @@ const PoppikSFA: React.FC = () => {
     doc.save(`Invoice_${order.id}_${order.outlet.name.replace(/\s+/g, '_')}.pdf`);
   };
 
+  const addProfessionalHeader = (doc: any, title: string) => {
+    const pageWidth = 210;
+    // Top Right Tagline
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text("One place for your beauty empowerment", pageWidth - 15, 10, { align: "right" });
+    
+    // Shop Logo/Name
+    doc.setFontSize(22);
+    doc.setTextColor(128, 0, 128); // Purple
+    doc.setFont("helvetica", "bold");
+    doc.text("POPPIK LIFESTYLE PRIVATE LIMITED", pageWidth / 2, 25, { align: "center" });
+    
+    // Shop Details
+    doc.setFontSize(8);
+    doc.setTextColor(50);
+    doc.setFont("helvetica", "normal");
+    doc.text("Office No.- 213, A- Wing, Skylark Building, Plot No.- 63, Sector No.- 11, C.B.D. Belapur, Navi Mumbai- 400614 INDIA.", pageWidth / 2, 30, { align: "center" });
+    doc.text(`Mobile: 8976261444          Email: info@poppik.in`, pageWidth / 2, 34, { align: "center" });
+
+    // Report Title Bar
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, 42, pageWidth - 30, 10, 'F');
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text(title.toUpperCase(), pageWidth / 2, 48.5, { align: "center" });
+
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Report Generated: ${new Date().toLocaleString()}`, 15, 58);
+    doc.text(`Sales Associate: ${user?.name || 'N/A'} (ID: #${user?.id || '000'})`, pageWidth - 15, 58, { align: "right" });
+    
+    return 65; // Return Y position where content should start
+  };
+
+  const downloadPartyWiseReport = () => {
+    if (!partyWiseReport) return;
+    const doc = new jsPDF() as any;
+    let yPos = addProfessionalHeader(doc, "Party-wise Sales History");
+    
+    Object.entries(partyWiseReport).forEach(([outletName, data], index) => {
+      // Check for page break
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(128, 0, 128);
+      doc.text(`${index + 1}. ${outletName}`, 15, yPos);
+      yPos += 5;
+
+      const orderData = data.orders.map(order => [
+        `#${order.id}`,
+        new Date(order.createdAt).toLocaleDateString('en-GB'),
+        (order.orderItems || order.items || []).map(item => item.product?.name || 'Unknown Product').join(', '),
+        order.totalAmount.toLocaleString('en-IN')
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Order ID', 'Date', 'Products', 'Amount']],
+        body: orderData,
+        theme: 'grid',
+        headStyles: { fillColor: [240, 240, 240], textColor: 50, fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          2: { cellWidth: 80 }, // Give more width to products column
+          3: { halign: 'right' } // Align amount to right
+        },
+        margin: { left: 20, right: 20 },
+        styles: { cellPadding: 2, overflow: 'linebreak' }
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 5;
+
+      // Summary for this party
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0);
+      doc.text(`Party Summary: ${data.totalOrders} Orders | Total Value: ${data.totalAmount.toLocaleString('en-IN')}`, 20, yPos);
+      yPos += 12;
+    });
+    
+    doc.save(`Party_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const downloadLocationWiseReport = () => {
+    if (!locationWiseReport) return;
+    const doc = new jsPDF() as any;
+    let yPos = addProfessionalHeader(doc, "Location-wise Sales Summary");
+    
+    Object.entries(locationWiseReport).forEach(([location, data], index) => {
+      // Check for page break
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(128, 0, 128);
+      doc.text(`${index + 1}. Location: ${location}`, 15, yPos);
+      yPos += 5;
+
+      const orderData = data.orders.map(order => [
+        order.outlet.name,
+        new Date(order.createdAt).toLocaleDateString('en-GB'),
+        (order.orderItems || order.items || []).map(item => item.product?.name || 'Unknown Product').join(', '),
+        order.totalAmount.toLocaleString('en-IN')
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Outlet Name', 'Date', 'Products', 'Amount']],
+        body: orderData,
+        theme: 'grid',
+        headStyles: { fillColor: [240, 240, 240], textColor: 50, fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          2: { cellWidth: 70 }, // Products column width
+          3: { halign: 'right' } // Amount right align
+        },
+        margin: { left: 20, right: 20 },
+        styles: { cellPadding: 2, overflow: 'linebreak' }
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 5;
+
+      // Summary for this location
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0);
+      doc.text(`Location Summary: ${data.uniquePartiesCount} Parties | ${data.totalOrders} Orders | Value: ${data.totalAmount.toLocaleString('en-IN')}`, 20, yPos);
+      yPos += 12;
+    });
+    
+    doc.save(`Location_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const downloadProductWiseReport = () => {
+    if (!productWiseReport) return;
+    const doc = new jsPDF() as any;
+    const yPos = addProfessionalHeader(doc, "Product Performance Report");
+    
+    const tableData = Object.entries(productWiseReport).map(([productName, data]) => [
+      productName,
+      data.productCode || 'N/A',
+      data.category,
+      data.totalQuantity.toString(),
+      data.totalRevenue.toLocaleString('en-IN')
+    ]);
+
+    const totalRevenue = Object.values(productWiseReport).reduce((sum, data) => sum + data.totalRevenue, 0);
+    const totalQty = Object.values(productWiseReport).reduce((sum, data) => sum + data.totalQuantity, 0);
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Product Name', 'Code', 'Category', 'Qty Sold', 'Revenue']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [128, 0, 128], textColor: 255, fontSize: 10 },
+      bodyStyles: { fontSize: 9 },
+      styles: { cellPadding: 4 },
+      columnStyles: {
+        4: { halign: 'right' } // Revenue column right align
+      },
+      foot: [['TOTAL', '', '', totalQty.toString(), totalRevenue.toLocaleString('en-IN')]],
+      footStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold', fontSize: 10, halign: 'right' }
+    });
+    
+    doc.save(`Product_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const downloadAdminTeamReport = () => {
+    if (!adminReports || adminReports.length === 0) return;
+    const doc = new jsPDF() as any;
+    let yPos = addProfessionalHeader(doc, "Sales Team Performance Report");
+    
+    adminReports.forEach((salesman, index) => {
+      // Check for page break
+      if (yPos > 230) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Salesman Header
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(128, 0, 128);
+      doc.text(`${index + 1}. ${salesman.name.toUpperCase()}`, 15, yPos);
+      
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Contact: ${salesman.phone}`, 15, yPos + 5);
+      
+      // Salesman Stats Box
+      doc.setFillColor(250, 250, 250);
+      doc.rect(140, yPos - 4, 55, 14, 'F');
+      doc.setFontSize(8);
+      doc.setTextColor(50);
+      doc.text(`Total Revenue: ${salesman.totalRevenue.toLocaleString('en-IN')}`, 145, yPos);
+      doc.text(`Outlets Covered: ${salesman.uniqueOutlets}`, 145, yPos + 5);
+      
+      yPos += 12;
+
+      // Orders Table for this Salesman
+      const orderData = salesman.recentOrders.map((order: any) => [
+        order.outletName,
+        new Date(order.date).toLocaleDateString('en-GB'),
+        (order.orderItems || []).map((item: any) => `${item.productName} (x${item.quantity})`).join(', '),
+        order.amount.toLocaleString('en-IN'),
+        'SUCCESS'
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Outlet Name', 'Date', 'Products', 'Amount', 'Status']],
+        body: orderData,
+        theme: 'grid',
+        headStyles: { fillColor: [240, 240, 240], textColor: 50, fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          2: { cellWidth: 70 }, // Products column width
+          3: { halign: 'right' },
+          4: { halign: 'center', textColor: [0, 150, 0] }
+        },
+        margin: { left: 20, right: 20 },
+        styles: { cellPadding: 2, overflow: 'linebreak' }
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    });
+    
+    doc.save(`Team_Performance_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const downloadIndividualSalesmanReport = (salesman: any) => {
+    const doc = new jsPDF() as any;
+    let yPos = addProfessionalHeader(doc, `Performance Report: ${salesman.name}`);
+    
+    // Salesman Header
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(128, 0, 128);
+    doc.text(salesman.name.toUpperCase(), 15, yPos);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Contact: ${salesman.phone}`, 15, yPos + 6);
+    
+    // Salesman Stats Box
+    doc.setFillColor(250, 250, 250);
+    doc.rect(140, yPos - 4, 55, 16, 'F');
+    doc.setFontSize(9);
+    doc.setTextColor(50);
+    doc.text(`Total Revenue: ${salesman.totalRevenue.toLocaleString('en-IN')}`, 145, yPos + 2);
+    doc.text(`Outlets Covered: ${salesman.uniqueOutlets}`, 145, yPos + 8);
+    
+    yPos += 20;
+
+    // Orders Table
+    const orderData = salesman.recentOrders.map((order: any) => [
+      order.outletName,
+      new Date(order.date).toLocaleDateString('en-GB'),
+      (order.orderItems || []).map((item: any) => `${item.productName} (x${item.quantity})`).join(', '),
+      order.amount.toLocaleString('en-IN'),
+      'SUCCESS'
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Outlet Name', 'Date', 'Products', 'Amount', 'Status']],
+      body: orderData,
+      theme: 'grid',
+      headStyles: { fillColor: [128, 0, 128], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        2: { cellWidth: 70 }, // Products column width
+        3: { halign: 'right' },
+        4: { halign: 'center', textColor: [0, 150, 0] }
+      },
+      styles: { cellPadding: 4, overflow: 'linebreak' }
+    });
+    
+    doc.save(`Report_${salesman.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const shareOnWhatsApp = (order: Order) => {
     const message = `*Poppik Lifestyle - Order Confirmation*\n\n` +
       `*Order ID:* #${order.id}\n` +
@@ -2087,23 +2381,35 @@ const PoppikSFA: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                     {outlets.filter(o => (o.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || (o.area?.toLowerCase() || '').includes(searchQuery.toLowerCase())).map(outlet => (
-                      <div key={outlet.id} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:border-poppik-green hover:shadow-xl transition-all group flex flex-col h-full">
-                        <div className="mb-8 flex-1">
-                          <div className="flex items-center justify-between mb-4">
-                              <div className="bg-slate-50 p-3 rounded-2xl text-poppik-green group-hover:bg-poppik-green group-hover:text-white transition-colors"><Store className="w-6 h-6" /></div>
-                              <span className="text-xs font-black text-poppik-gold bg-poppik-gold/10 px-3 py-1.5 rounded-full uppercase">{outlet.class?.replace('_', '+')}</span>
+                      <div key={outlet.id} className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm hover:border-poppik-green hover:shadow-xl transition-all group flex flex-col h-full">
+                        <div className="mb-4 md:mb-8 flex-1">
+                          <div className="flex items-center justify-between mb-3 md:mb-4">
+                              <div className="bg-slate-50 p-2 md:p-3 rounded-xl md:rounded-2xl text-poppik-green group-hover:bg-poppik-green group-hover:text-white transition-colors">
+                                <Store className="w-4 h-4 md:w-6 md:h-6" />
+                              </div>
+                              <span className="text-[8px] md:text-xs font-black text-poppik-gold bg-poppik-gold/10 px-2 py-1 md:px-3 md:py-1.5 rounded-full uppercase">
+                                {outlet.class?.replace('_', '+')}
+                              </span>
                           </div>
-                          <h3 className="text-xl font-black text-slate-800 mb-4 group-hover:text-poppik-green transition-colors">{outlet.name}</h3>
-                          <p className="text-sm text-slate-500 flex items-center mb-2"><User className="w-4 h-4 mr-2 text-slate-400" /> {outlet.owner_name || 'Owner'}</p>
-                          <p className="text-sm text-slate-500 flex items-center"><MapPin className="w-4 h-4 mr-2 text-slate-400" /> {outlet.area}, {outlet.city}</p>
+                          <h3 className="text-sm md:text-xl font-black text-slate-800 mb-2 md:mb-4 group-hover:text-poppik-green transition-colors line-clamp-2">
+                            {outlet.name}
+                          </h3>
+                          <p className="text-[10px] md:text-sm text-slate-500 flex items-center mb-1 md:mb-2">
+                            <User className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 text-slate-400" /> 
+                            <span className="truncate">{outlet.owner_name || 'Owner'}</span>
+                          </p>
+                          <p className="text-[10px] md:text-sm text-slate-500 flex items-center">
+                            <MapPin className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 text-slate-400" /> 
+                            <span className="truncate">{outlet.area}</span>
+                          </p>
                         </div>
                         <button 
                           onClick={() => { setActiveOutlet(outlet); setCurrentScreen('productCatalog'); }}
-                          className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-poppik-green transition-all transform active:scale-95 flex items-center justify-center space-x-2 shadow-lg shadow-black/10"
+                          className="w-full py-2.5 md:py-4 bg-slate-900 text-white text-xs md:text-base font-bold rounded-xl md:rounded-2xl hover:bg-poppik-green transition-all transform active:scale-95 flex items-center justify-center space-x-1 md:space-x-2 shadow-lg shadow-black/10"
                         >
-                          <span>Create Order</span><ChevronRight className="w-5 h-5" />
+                          <span className="whitespace-nowrap">Create Order</span><ChevronRight className="w-3 h-3 md:w-5 md:h-5" />
                         </button>
                       </div>
                     ))}
@@ -2416,7 +2722,17 @@ const PoppikSFA: React.FC = () => {
                     </div>
                   </div>
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
-                    <h2 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Store className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Party-wise History</h2>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Store className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Party-wise History</h2>
+                      <button 
+                        onClick={downloadPartyWiseReport}
+                        className="p-2 md:p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-poppik-beige hover:text-poppik-black transition-all shadow-sm flex items-center space-x-2"
+                        title="Download Report"
+                      >
+                        <FileText className="w-4 h-4 md:w-5 md:h-5" />
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest hidden sm:inline">Download</span>
+                      </button>
+                    </div>
                     <div className="space-y-4">
                       {partyWiseReport && Object.entries(partyWiseReport).map(([outletName, data]) => (
                         <div key={outletName} className="p-5 md:p-6 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100 flex flex-col gap-6">
@@ -2458,7 +2774,17 @@ const PoppikSFA: React.FC = () => {
                   </div>
 
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
-                    <h2 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><MapPin className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Location-wise History</h2>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><MapPin className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Location-wise History</h2>
+                      <button 
+                        onClick={downloadLocationWiseReport}
+                        className="p-2 md:p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-poppik-beige hover:text-poppik-black transition-all shadow-sm flex items-center space-x-2"
+                        title="Download Report"
+                      >
+                        <FileText className="w-4 h-4 md:w-5 md:h-5" />
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest hidden sm:inline">Download</span>
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                       {locationWiseReport && Object.entries(locationWiseReport).map(([location, data]) => (
                         <div key={location} className="p-5 md:p-6 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100 flex flex-col justify-between">
@@ -2482,7 +2808,17 @@ const PoppikSFA: React.FC = () => {
                   </div>
 
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
-                    <h2 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Package className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Product-wise History</h2>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Package className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Product-wise History</h2>
+                      <button 
+                        onClick={downloadProductWiseReport}
+                        className="p-2 md:p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-poppik-beige hover:text-poppik-black transition-all shadow-sm flex items-center space-x-2"
+                        title="Download Report"
+                      >
+                        <FileText className="w-4 h-4 md:w-5 md:h-5" />
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest hidden sm:inline">Download</span>
+                      </button>
+                    </div>
                     <div className="overflow-x-auto -mx-5 md:mx-0">
                       <table className="w-full text-left min-w-[500px] md:min-w-full">
                         <thead>
@@ -2843,13 +3179,35 @@ const PoppikSFA: React.FC = () => {
 
             {currentScreen === 'adminReports' && (
               <ScreenWrapper title="Sales Performance Analysis" showBack backAction={() => setCurrentScreen('adminDashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
-                <div className="space-y-8">
+                <div className="space-y-6 md:space-y-8">
+                   <div className="flex justify-between items-center mb-2">
+                      <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-xs">Team Wise Activity</p>
+                      <button 
+                        onClick={downloadAdminTeamReport}
+                        className="px-4 py-2 bg-poppik-green text-white font-black rounded-xl text-[10px] md:text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-green-900/10 flex items-center space-x-2"
+                      >
+                        <CloudUpload className="w-4 h-4" />
+                        <span>Download All Reports</span>
+                      </button>
+                   </div>
                    {adminReports.map(salesman => (
                      <div key={salesman.id} className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
                         <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
                            <div className="flex items-center space-x-4">
                               <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100"><User className="w-8 h-8 text-poppik-green" /></div>
-                              <div><h3 className="text-2xl font-black text-slate-800">{salesman.name}</h3><p className="text-slate-500 font-bold">{salesman.phone}</p></div>
+                              <div>
+                                 <div className="flex items-center space-x-3">
+                                    <h3 className="text-2xl font-black text-slate-800">{salesman.name}</h3>
+                                    <button 
+                                      onClick={() => downloadIndividualSalesmanReport(salesman)}
+                                      className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-poppik-beige hover:text-poppik-black transition-all"
+                                      title="Download Member Report"
+                                    >
+                                      <FileText className="w-4 h-4" />
+                                    </button>
+                                 </div>
+                                 <p className="text-slate-500 font-bold">{salesman.phone}</p>
+                              </div>
                            </div>
                            <div className="flex gap-4">
                               <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Total Revenue</p><p className="text-xl font-black text-poppik-green">₹{salesman.totalRevenue.toLocaleString()}</p></div>
@@ -2860,9 +3218,22 @@ const PoppikSFA: React.FC = () => {
                            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Recent Outlet Orders & Activity</h4>
                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {salesman.recentOrders.map((order: any) => (
-                                <div key={order.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
-                                   <div><p className="font-bold text-slate-800">{order.outletName}</p><p className="text-xs text-slate-400">{new Date(order.date).toLocaleDateString()}</p></div>
-                                   <div className="text-right"><p className="font-black text-slate-800">₹{order.amount}</p><p className="text-[10px] font-bold text-poppik-green uppercase">Success</p></div>
+                                <div key={order.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-start overflow-hidden">
+                                   <div className="flex-1 pr-4 min-w-0">
+                                      <p className="font-bold text-slate-800 truncate">{order.outletName}</p>
+                                      <p className="text-xs text-slate-400 mb-2">{new Date(order.date).toLocaleDateString()}</p>
+                                      <div className="flex flex-wrap gap-1">
+                                         {(order.orderItems || []).map((item: any, idx: number) => (
+                                           <span key={idx} className="px-2 py-0.5 bg-white border border-slate-200 rounded-full text-[9px] font-bold text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+                                              {item.productName} (x{item.quantity})
+                                           </span>
+                                         ))}
+                                      </div>
+                                   </div>
+                                   <div className="text-right shrink-0">
+                                      <p className="font-black text-slate-800">₹{order.amount.toLocaleString('en-IN')}</p>
+                                      <p className="text-[10px] font-bold text-poppik-green uppercase">Success</p>
+                                   </div>
                                 </div>
                               ))}
                               {salesman.recentOrders.length === 0 && <p className="col-span-full text-slate-400 text-sm italic text-center py-4">No activity recorded yet</p>}
