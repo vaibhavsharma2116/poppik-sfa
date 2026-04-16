@@ -2726,11 +2726,10 @@ const PoppikSFA: React.FC = () => {
                       <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Store className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Party-wise History</h2>
                       <button 
                         onClick={downloadPartyWiseReport}
-                        className="p-2 md:p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-poppik-beige hover:text-poppik-black transition-all shadow-sm flex items-center space-x-2"
+                        className="p-2 md:p-3 bg-poppik-green text-white rounded-xl hover:bg-green-600 transition-all shadow-md flex items-center shrink-0"
                         title="Download Report"
                       >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
-                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest hidden sm:inline">Download</span>
                       </button>
                     </div>
                     <div className="space-y-4">
@@ -2778,11 +2777,10 @@ const PoppikSFA: React.FC = () => {
                       <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><MapPin className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Location-wise History</h2>
                       <button 
                         onClick={downloadLocationWiseReport}
-                        className="p-2 md:p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-poppik-beige hover:text-poppik-black transition-all shadow-sm flex items-center space-x-2"
+                        className="p-2 md:p-3 bg-poppik-green text-white rounded-xl hover:bg-green-600 transition-all shadow-md flex items-center shrink-0"
                         title="Download Report"
                       >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
-                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest hidden sm:inline">Download</span>
                       </button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -2812,11 +2810,10 @@ const PoppikSFA: React.FC = () => {
                       <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Package className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Product-wise History</h2>
                       <button 
                         onClick={downloadProductWiseReport}
-                        className="p-2 md:p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-poppik-beige hover:text-poppik-black transition-all shadow-sm flex items-center space-x-2"
+                        className="p-2 md:p-3 bg-poppik-green text-white rounded-xl hover:bg-green-600 transition-all shadow-md flex items-center shrink-0"
                         title="Download Report"
                       >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
-                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest hidden sm:inline">Download</span>
                       </button>
                     </div>
                     <div className="overflow-x-auto -mx-5 md:mx-0">
