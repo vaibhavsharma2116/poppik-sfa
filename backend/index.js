@@ -267,35 +267,35 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
         strikeRate: parseFloat(strikeRate.toFixed(2)),
         uniqueOutlets,
         lastPunch: salesman.attendances[0] || null,
-        recentOrders: salesman.orders.slice(-5).map(o => ({
+        recentOrders: (salesman.orders || []).slice(-5).map(o => ({
           id: o.id,
           totalAmount: o.totalAmount,
           createdAt: o.createdAt,
           status: o.status,
-          outlet: {
+          outlet: o.outlet ? {
             name: o.outlet.name,
             address: o.outlet.address,
             owner_no: o.outlet.owner_no,
             gstNumber: o.outlet.gstNumber
-          },
-          orderItems: o.orderItems.map(item => ({
-            product: {
+          } : { name: 'Unknown Outlet', address: 'N/A' },
+          orderItems: (o.orderItems || []).map(item => ({
+            product: item.product ? {
               name: item.product.name,
               productCode: item.product.productCode,
               boxSize: item.product.boxSize
-            },
+            } : { name: 'Unknown Product' },
             quantity: item.quantity,
             priceAtTime: item.priceAtTime
           }))
         })),
-        recentVisits: salesman.visits.slice(-5).map(v => ({
+        recentVisits: (salesman.visits || []).slice(-5).map(v => ({
           id: v.id,
           outlet: v.outlet ? {
             name: v.outlet.name,
             area: v.outlet.area,
             city: v.outlet.city,
             address: v.outlet.address
-          } : null,
+          } : { name: 'Unknown Outlet' },
           type: v.type,
           reason: v.reason,
           timestamp: v.timestamp,
