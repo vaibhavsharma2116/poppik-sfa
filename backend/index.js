@@ -238,10 +238,6 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
         attendances: {
           orderBy: { timestamp: 'desc' },
           take: 1
-        },
-        visits: {
-          include: { outlet: true },
-          orderBy: { timestamp: 'desc' }
         }
       }
     });
@@ -250,19 +246,17 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
     const analyzedReports = reports.map(salesman => {
       try {
         const orders = salesman.orders || [];
-        const visits = salesman.visits || [];
         const attendances = salesman.attendances || [];
 
         const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
         const totalOrders = orders.length;
-        const totalVisits = visits.length;
+        const totalVisits = 0;
         
         // Combine outlet IDs from both orders and visits to get total unique outlets covered
         const orderOutletIds = orders.map(o => o.outletId).filter(id => id != null);
-        const visitOutletIds = visits.map(v => v.outletId).filter(id => id != null);
-        const uniqueOutlets = new Set([...orderOutletIds, ...visitOutletIds]).size;
+        const uniqueOutlets = new Set([...orderOutletIds]).size;
 
-        const strikeRate = totalVisits > 0 ? (totalOrders / totalVisits) * 100 : 0;
+        const strikeRate = 0;
         
         return {
           id: salesman.id,
@@ -294,20 +288,6 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
               quantity: item.quantity || 0,
               priceAtTime: item.priceAtTime || 0
             }))
-          })),
-          recentVisits: visits.slice(-5).map(v => ({
-            id: v.id,
-            outlet: v.outlet ? {
-              name: v.outlet.name,
-              area: v.outlet.area || 'N/A',
-              city: v.outlet.city || 'N/A',
-              address: v.outlet.address || 'N/A'
-            } : { name: 'Unknown Outlet' },
-            type: v.type,
-            reason: v.reason || '-',
-            timestamp: v.timestamp,
-            latitude: v.latitude,
-            longitude: v.longitude
           }))
         };
       } catch (mapErr) {
