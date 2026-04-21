@@ -246,13 +246,17 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
     });
 
     const analyzedReports = reports.map(salesman => {
-      const totalRevenue = salesman.orders.reduce((sum, o) => sum + o.totalAmount, 0);
-      const totalOrders = salesman.orders.length;
-      const totalVisits = salesman.visits.length;
+      const orders = salesman.orders || [];
+      const visits = salesman.visits || [];
+      const attendances = salesman.attendances || [];
+
+      const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+      const totalOrders = orders.length;
+      const totalVisits = visits.length;
       
       // Combine outlet IDs from both orders and visits to get total unique outlets covered
-      const orderOutletIds = salesman.orders.map(o => o.outletId);
-      const visitOutletIds = salesman.visits.map(v => v.outletId);
+      const orderOutletIds = orders.map(o => o.outletId).filter(id => id != null);
+      const visitOutletIds = visits.map(v => v.outletId).filter(id => id != null);
       const uniqueOutlets = new Set([...orderOutletIds, ...visitOutletIds]).size;
 
       const strikeRate = totalVisits > 0 ? (totalOrders / totalVisits) * 100 : 0;
@@ -264,40 +268,40 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
         totalRevenue,
         totalOrders,
         totalVisits,
-        strikeRate: parseFloat(strikeRate.toFixed(2)),
+        strikeRate: isNaN(strikeRate) ? 0 : parseFloat(strikeRate.toFixed(2)),
         uniqueOutlets,
-        lastPunch: salesman.attendances[0] || null,
-        recentOrders: (salesman.orders || []).slice(-5).map(o => ({
+        lastPunch: attendances[0] || null,
+        recentOrders: orders.slice(-5).map(o => ({
           id: o.id,
-          totalAmount: o.totalAmount,
+          totalAmount: o.totalAmount || 0,
           createdAt: o.createdAt,
           status: o.status,
           outlet: o.outlet ? {
             name: o.outlet.name,
-            address: o.outlet.address,
-            owner_no: o.outlet.owner_no,
-            gstNumber: o.outlet.gstNumber
+            address: o.outlet.address || 'N/A',
+            owner_no: o.outlet.owner_no || 'N/A',
+            gstNumber: o.outlet.gstNumber || 'N/A'
           } : { name: 'Unknown Outlet', address: 'N/A' },
           orderItems: (o.orderItems || []).map(item => ({
             product: item.product ? {
               name: item.product.name,
-              productCode: item.product.productCode,
-              boxSize: item.product.boxSize
+              productCode: item.product.productCode || 'N/A',
+              boxSize: item.product.boxSize || 'N/A'
             } : { name: 'Unknown Product' },
-            quantity: item.quantity,
-            priceAtTime: item.priceAtTime
+            quantity: item.quantity || 0,
+            priceAtTime: item.priceAtTime || 0
           }))
         })),
-        recentVisits: (salesman.visits || []).slice(-5).map(v => ({
+        recentVisits: visits.slice(-5).map(v => ({
           id: v.id,
           outlet: v.outlet ? {
             name: v.outlet.name,
-            area: v.outlet.area,
-            city: v.outlet.city,
-            address: v.outlet.address
+            area: v.outlet.area || 'N/A',
+            city: v.outlet.city || 'N/A',
+            address: v.outlet.address || 'N/A'
           } : { name: 'Unknown Outlet' },
           type: v.type,
-          reason: v.reason,
+          reason: v.reason || '-',
           timestamp: v.timestamp,
           latitude: v.latitude,
           longitude: v.longitude
