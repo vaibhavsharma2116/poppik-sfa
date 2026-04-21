@@ -220,6 +220,7 @@ app.get('/api/admin/stats', authenticateToken, isAdmin, async (req, res) => {
 
 app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res) => {
   try {
+    console.log("[ADMIN_REPORTS] Fetching reports for all sales users...");
     const reports = await prisma.user.findMany({
       where: { role: 'sales' },
       select: {
@@ -244,74 +245,95 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
         }
       }
     });
+    console.log(`[ADMIN_REPORTS] Found ${reports.length} sales users. Processing mapping...`);
 
     const analyzedReports = reports.map(salesman => {
-      const orders = salesman.orders || [];
-      const visits = salesman.visits || [];
-      const attendances = salesman.attendances || [];
+      try {
+        const orders = salesman.orders || [];
+        const visits = salesman.visits || [];
+        const attendances = salesman.attendances || [];
 
-      const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-      const totalOrders = orders.length;
-      const totalVisits = visits.length;
-      
-      // Combine outlet IDs from both orders and visits to get total unique outlets covered
-      const orderOutletIds = orders.map(o => o.outletId).filter(id => id != null);
-      const visitOutletIds = visits.map(v => v.outletId).filter(id => id != null);
-      const uniqueOutlets = new Set([...orderOutletIds, ...visitOutletIds]).size;
+        const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        const totalOrders = orders.length;
+        const totalVisits = visits.length;
+        
+        // Combine outlet IDs from both orders and visits to get total unique outlets covered
+        const orderOutletIds = orders.map(o => o.outletId).filter(id => id != null);
+        const visitOutletIds = visits.map(v => v.outletId).filter(id => id != null);
+        const uniqueOutlets = new Set([...orderOutletIds, ...visitOutletIds]).size;
 
-      const strikeRate = totalVisits > 0 ? (totalOrders / totalVisits) * 100 : 0;
-      
-      return {
-        id: salesman.id,
-        name: salesman.name,
-        phone: salesman.phone,
-        totalRevenue,
-        totalOrders,
-        totalVisits,
-        strikeRate: isNaN(strikeRate) ? 0 : parseFloat(strikeRate.toFixed(2)),
-        uniqueOutlets,
-        lastPunch: attendances[0] || null,
-        recentOrders: orders.slice(-5).map(o => ({
-          id: o.id,
-          totalAmount: o.totalAmount || 0,
-          createdAt: o.createdAt,
-          status: o.status,
-          outlet: o.outlet ? {
-            name: o.outlet.name,
-            address: o.outlet.address || 'N/A',
-            owner_no: o.outlet.owner_no || 'N/A',
-            gstNumber: o.outlet.gstNumber || 'N/A'
-          } : { name: 'Unknown Outlet', address: 'N/A' },
-          orderItems: (o.orderItems || []).map(item => ({
-            product: item.product ? {
-              name: item.product.name,
-              productCode: item.product.productCode || 'N/A',
-              boxSize: item.product.boxSize || 'N/A'
-            } : { name: 'Unknown Product' },
-            quantity: item.quantity || 0,
-            priceAtTime: item.priceAtTime || 0
+        const strikeRate = totalVisits > 0 ? (totalOrders / totalVisits) * 100 : 0;
+        
+        return {
+          id: salesman.id,
+          name: salesman.name,
+          phone: salesman.phone,
+          totalRevenue,
+          totalOrders,
+          totalVisits,
+          strikeRate: isNaN(strikeRate) ? 0 : parseFloat(strikeRate.toFixed(2)),
+          uniqueOutlets,
+          lastPunch: attendances[0] || null,
+          recentOrders: orders.slice(-5).map(o => ({
+            id: o.id,
+            totalAmount: o.totalAmount || 0,
+            createdAt: o.createdAt,
+            status: o.status,
+            outlet: o.outlet ? {
+              name: o.outlet.name,
+              address: o.outlet.address || 'N/A',
+              owner_no: o.outlet.owner_no || 'N/A',
+              gstNumber: o.outlet.gstNumber || 'N/A'
+            } : { name: 'Unknown Outlet', address: 'N/A' },
+            orderItems: (o.orderItems || []).map(item => ({
+              product: item.product ? {
+                name: item.product.name,
+                productCode: item.product.productCode || 'N/A',
+                boxSize: item.product.boxSize || 'N/A'
+              } : { name: 'Unknown Product' },
+              quantity: item.quantity || 0,
+              priceAtTime: item.priceAtTime || 0
+            }))
+          })),
+          recentVisits: visits.slice(-5).map(v => ({
+            id: v.id,
+            outlet: v.outlet ? {
+              name: v.outlet.name,
+              area: v.outlet.area || 'N/A',
+              city: v.outlet.city || 'N/A',
+              address: v.outlet.address || 'N/A'
+            } : { name: 'Unknown Outlet' },
+            type: v.type,
+            reason: v.reason || '-',
+            timestamp: v.timestamp,
+            latitude: v.latitude,
+            longitude: v.longitude
           }))
-        })),
-        recentVisits: visits.slice(-5).map(v => ({
-          id: v.id,
-          outlet: v.outlet ? {
-            name: v.outlet.name,
-            area: v.outlet.area || 'N/A',
-            city: v.outlet.city || 'N/A',
-            address: v.outlet.address || 'N/A'
-          } : { name: 'Unknown Outlet' },
-          type: v.type,
-          reason: v.reason || '-',
-          timestamp: v.timestamp,
-          latitude: v.latitude,
-          longitude: v.longitude
-        }))
-      };
+        };
+      } catch (mapErr) {
+        console.error(`[ADMIN_REPORTS] Error mapping salesman ${salesman.id} (${salesman.name}):`, mapErr.message);
+        // Return a basic object so the whole API doesn't crash
+        return {
+          id: salesman.id,
+          name: salesman.name,
+          phone: salesman.phone,
+          totalRevenue: 0,
+          totalOrders: 0,
+          totalVisits: 0,
+          strikeRate: 0,
+          uniqueOutlets: 0,
+          lastPunch: null,
+          recentOrders: [],
+          recentVisits: []
+        };
+      }
     });
 
+    console.log("[ADMIN_REPORTS] Mapping complete. Sending response.");
     res.json(analyzedReports);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("[ADMIN_REPORTS] Critical API error:", err.stack || err.message);
+    res.status(500).json({ error: "Internal Server Error", message: err.message });
   }
 });
 
