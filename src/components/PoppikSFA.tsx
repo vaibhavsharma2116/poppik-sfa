@@ -155,7 +155,7 @@ const createSafeStorage = () => {
 const safeStorage = createSafeStorage();
 
 // Types
-type Screen = 'dashboard' | 'createOrder' | 'addClient' | 'reports' | 'productCatalog' | 'cart' | 'login' | 'adminDashboard' | 'adminUsers' | 'adminAddUser' | 'adminEditUser' | 'adminReports' | 'orders' | 'profile' | 'attendance' | 'adminLeaves' | 'inventory' | 'notifications';
+type Screen = 'dashboard' | 'createOrder' | 'addClient' | 'reports' | 'productCatalog' | 'cart' | 'login' | 'adminDashboard' | 'adminUsers' | 'adminAddUser' | 'adminEditUser' | 'adminReports' | 'orders' | 'profile' | 'attendance' | 'adminLeaves' | 'inventory' | 'notifications' | 'outletAction';
 
 interface Outlet {
   id: number;
@@ -208,6 +208,18 @@ interface Order {
 interface DayWiseReport {
   totalAttendance: number;
   totalSalesValue: number;
+  totalVisits: number;
+  totalOrders: number;
+  strikeRate: number;
+}
+
+interface Visit {
+  id: number;
+  type: string;
+  reason?: string;
+  timestamp: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface PartyWiseReport {
@@ -215,6 +227,7 @@ interface PartyWiseReport {
     totalOrders: number;
     totalAmount: number;
     orders: Order[];
+    visits: Visit[];
   };
 }
 
@@ -876,6 +889,7 @@ const PoppikSFA: React.FC = () => {
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const [viewingVisit, setViewingVisit] = useState<any | null>(null);
   const [cart, setCart] = useState<Record<number, number>>({});
   const [isPunchedIn, setIsPunchedIn] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -884,6 +898,8 @@ const PoppikSFA: React.FC = () => {
   const [partyWiseReport, setPartyWiseReport] = useState<PartyWiseReport | null>(null);
   const [locationWiseReport, setLocationWiseReport] = useState<LocationWiseReport | null>(null);
   const [productWiseReport, setProductWiseReport] = useState<ProductWiseReport | null>(null);
+  const [visitHistory, setVisitHistory] = useState<any[]>([]);
+  const [reportPeriod, setReportPeriod] = useState<'day' | 'month' | 'year'>('day');
 
   const [adminStats, setAdminStats] = useState<any>(null);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
@@ -891,9 +907,14 @@ const PoppikSFA: React.FC = () => {
   const [adminLeaves, setAdminLeaves] = useState<Leave[]>([]);
   const [editingUser, setEditingUser] = useState<any>(null);
 
+  const [visitReason, setVisitReason] = useState('');
+  const [otherReason, setOtherReason] = useState('');
+  const [isSubmittingVisit, setIsSubmittingVisit] = useState(false);
+
   const [loginForm, setLoginForm] = useState({ phone: '8888888888', password: 'sales123', name: '', role: 'sales' });
   const [outletForm, setOutletForm] = useState({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '' });
   const [isRegistering, setIsRegistering] = useState(false);
+  const [lastKnownLocation, setLastKnownLocation] = useState<{lat: number, lng: number} | null>(null);
   
   // Offline / PWA States
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -967,6 +988,7 @@ const PoppikSFA: React.FC = () => {
       
       watchId = navigator.geolocation.watchPosition(
         async (pos) => {
+          setLastKnownLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           try {
             await axios.post(`${API_BASE}/attendance/update-location`, {
               latitude: pos.coords.latitude,
@@ -1105,6 +1127,67 @@ const PoppikSFA: React.FC = () => {
     }
   };
 
+  const submitVisit = async (type: 'ORDER' | 'NO_ORDER', reason?: string) => {
+    if (!activeOutlet) return;
+    
+    setIsSubmittingVisit(true);
+    
+    // Capture GPS if available
+    let latitude = lastKnownLocation?.lat || null;
+    let longitude = lastKnownLocation?.lng || null;
+
+    if (!window.isSecureContext) {
+      console.warn("[GPS] Browser is not in a secure context (HTTPS/localhost). GPS will likely fail.");
+    }
+    
+    try {
+      if (navigator.geolocation) {
+        console.log("[GPS] Attempting to capture high-accuracy location...");
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { 
+            timeout: 10000, 
+            enableHighAccuracy: true,
+            maximumAge: 0 
+          });
+        });
+        latitude = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+        setLastKnownLocation({ lat: latitude, lng: longitude });
+        console.log(`[GPS] Success: ${latitude}, ${longitude}`);
+      }
+    } catch (err: any) {
+      console.warn("[GPS] Fresh capture failed, using last known if available:", err.message);
+      // If we already have a last known location from live tracking, we use it as fallback
+      if (lastKnownLocation) {
+        latitude = lastKnownLocation.lat;
+        longitude = lastKnownLocation.lng;
+      }
+    }
+
+    try {
+      await api.post('/visits', {
+        outletId: activeOutlet.id,
+        type,
+        reason: reason || (visitReason === 'Other' ? otherReason : visitReason),
+        latitude,
+        longitude
+      });
+      
+      if (type === 'NO_ORDER') {
+        alert("Visit recorded successfully!");
+        setCurrentScreen('dashboard');
+        setVisitReason('');
+        setOtherReason('');
+        fetchReports(); // Refresh stats
+      }
+    } catch (err) {
+      console.error("Visit submission failed", err);
+      if (type === 'NO_ORDER') alert("Failed to record visit");
+    } finally {
+      setIsSubmittingVisit(false);
+    }
+  };
+
   const fetchAdminData = async () => {
     try {
       // Use individual calls or allSettled to prevent one failure from blocking others
@@ -1171,19 +1254,21 @@ const PoppikSFA: React.FC = () => {
 
   const fetchReports = async () => {
     try {
-      console.log("[REPORTS] Fetching fresh report data...");
-      const [dayRes, partyRes, locationRes, productRes] = await Promise.all([
-        api.get('/reports/day-wise'),
+      console.log(`[REPORTS] Fetching fresh report data for ${reportPeriod}...`);
+      const [dayRes, partyRes, locationRes, productRes, visitsRes] = await Promise.all([
+        api.get(`/reports/summary?period=${reportPeriod}`),
         api.get('/reports/party-wise'),
         api.get('/reports/location-wise'),
-        api.get('/reports/product-wise')
+        api.get('/reports/product-wise'),
+        api.get('/visits')
       ]);
       
       console.log("[REPORTS] SUCCESS - Received data:", {
         day: dayRes.data,
         party: partyRes.data,
         location: locationRes.data,
-        product: productRes.data
+        product: productRes.data,
+        visits: visitsRes.data
       });
       
       setDayWiseReport(dayRes.data);
@@ -1192,10 +1277,17 @@ const PoppikSFA: React.FC = () => {
       setPartyWiseReport({ ...partyData }); 
       setLocationWiseReport(locationRes.data);
       setProductWiseReport(productRes.data);
+      setVisitHistory(visitsRes.data);
     } catch (err) { 
       console.error("[REPORTS] Error fetching reports", err); 
     }
   };
+
+  useEffect(() => {
+    if (token && currentScreen === 'reports') {
+      fetchReports();
+    }
+  }, [reportPeriod]);
 
   // Auth Handlers
   const handleLogin = async (e: React.FormEvent) => {
@@ -1325,6 +1417,10 @@ const PoppikSFA: React.FC = () => {
 
     try {
       const res = await api.post('/orders', orderData);
+      
+      // Track the visit as an ORDER type
+      await submitVisit('ORDER', 'Order Placed');
+
       alert("Order Placed Successfully! Generating Invoice...");
       setCart({});
       fetchOrders();
@@ -1705,6 +1801,36 @@ const PoppikSFA: React.FC = () => {
     doc.save(`Product_Report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const downloadVisitReport = () => {
+    if (!visitHistory || visitHistory.length === 0) return;
+    const doc = new jsPDF() as any;
+    const yPos = addProfessionalHeader(doc, "Visit Activity Report");
+    
+    const tableData = visitHistory.map(visit => [
+      new Date(visit.timestamp).toLocaleDateString('en-GB'),
+      new Date(visit.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      visit.outlet?.name || 'Unknown Outlet',
+      visit.type === 'ORDER' ? 'ORDER PLACED' : 'NO ORDER',
+      visit.reason || 'N/A',
+      visit.latitude && visit.longitude ? `${visit.latitude.toFixed(4)}, ${visit.longitude.toFixed(4)}` : 'No GPS'
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Date', 'Time', 'Outlet Name', 'Type', 'Reason/Comment', 'Location']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [128, 0, 128], textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 8 },
+      styles: { cellPadding: 3 },
+      columnStyles: {
+        4: { cellWidth: 40 }
+      }
+    });
+    
+    doc.save(`Visit_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const downloadAdminTeamReport = () => {
     if (!adminReports || adminReports.length === 0) return;
     const doc = new jsPDF() as any;
@@ -1740,11 +1866,11 @@ const PoppikSFA: React.FC = () => {
 
       // Orders Table for this Salesman
       const orderData = salesman.recentOrders.map((order: any) => [
-        order.outletName,
-        new Date(order.date).toLocaleDateString('en-GB'),
-        (order.orderItems || []).map((item: any) => `${item.productName} (x${item.quantity})`).join(', '),
-        order.amount.toLocaleString('en-IN'),
-        'SUCCESS'
+        order.outlet?.name || 'Unknown Outlet',
+        new Date(order.createdAt).toLocaleDateString('en-GB'),
+        (order.orderItems || []).map((item: any) => `${item.product?.name || 'Unknown'} (x${item.quantity})`).join(', '),
+        order.totalAmount?.toLocaleString('en-IN') || '0',
+        order.status === 'Completed' ? 'SUCCESS' : 'PENDING'
       ]);
 
       autoTable(doc, {
@@ -1763,7 +1889,43 @@ const PoppikSFA: React.FC = () => {
         styles: { cellPadding: 2, overflow: 'linebreak' }
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 15;
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      // Visits Table for this Salesman
+      if (salesman.recentVisits && salesman.recentVisits.length > 0) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(50, 50, 50);
+        doc.text("Visit History", 15, yPos);
+        yPos += 6;
+
+        const visitData = salesman.recentVisits.map((visit: any) => [
+          visit.outlet?.name || 'Unknown Outlet',
+          new Date(visit.timestamp).toLocaleDateString('en-GB'),
+          visit.type === 'ORDER' ? 'Order Placed' : 'No Order',
+          visit.reason || '-',
+          visit.latitude ? 'Logged' : 'No GPS'
+        ]);
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Outlet', 'Date', 'Type', 'Reason', 'GPS']],
+          body: visitData,
+          theme: 'grid',
+          headStyles: { fillColor: [255, 200, 100], textColor: 50, fontStyle: 'bold', fontSize: 7 },
+          bodyStyles: { fontSize: 6 },
+          columnStyles: {
+            3: { cellWidth: 40 },
+            4: { halign: 'center' }
+          },
+          margin: { left: 20, right: 20 },
+          styles: { cellPadding: 2, overflow: 'linebreak' }
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+      } else {
+        yPos += 5;
+      }
     });
     
     doc.save(`Team_Performance_Report_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -1796,11 +1958,11 @@ const PoppikSFA: React.FC = () => {
 
     // Orders Table
     const orderData = salesman.recentOrders.map((order: any) => [
-      order.outletName,
-      new Date(order.date).toLocaleDateString('en-GB'),
-      (order.orderItems || []).map((item: any) => `${item.productName} (x${item.quantity})`).join(', '),
-      order.amount.toLocaleString('en-IN'),
-      'SUCCESS'
+      order.outlet?.name || 'Unknown Outlet',
+      new Date(order.createdAt).toLocaleDateString('en-GB'),
+      (order.orderItems || []).map((item: any) => `${item.product?.name || 'Unknown'} (x${item.quantity})`).join(', '),
+      order.totalAmount?.toLocaleString('en-IN') || '0',
+      order.status === 'Completed' ? 'SUCCESS' : 'PENDING'
     ]);
 
     autoTable(doc, {
@@ -1817,6 +1979,39 @@ const PoppikSFA: React.FC = () => {
       },
       styles: { cellPadding: 4, overflow: 'linebreak' }
     });
+
+    // Visits Table
+    if (salesman.recentVisits && salesman.recentVisits.length > 0) {
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(50, 50, 50);
+      doc.text("VISIT HISTORY", 15, yPos);
+      yPos += 8;
+
+      const visitData = salesman.recentVisits.map((visit: any) => [
+        visit.outlet?.name || 'Unknown Outlet',
+        new Date(visit.timestamp).toLocaleDateString('en-GB'),
+        visit.type === 'ORDER' ? 'Order Placed' : 'No Order',
+        visit.reason || '-',
+        visit.latitude ? 'Logged' : 'No GPS'
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Outlet Name', 'Date', 'Visit Type', 'Reason', 'GPS']],
+        body: visitData,
+        theme: 'grid',
+        headStyles: { fillColor: [255, 140, 0], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          3: { cellWidth: 50 },
+          4: { halign: 'center' }
+        },
+        styles: { cellPadding: 4, overflow: 'linebreak' }
+      });
+    }
     
     doc.save(`Report_${salesman.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
@@ -2035,7 +2230,79 @@ const PoppikSFA: React.FC = () => {
                   </div>
 
                   {/* Order Detail Modal */}
-                  {viewingOrder && (
+                  {viewingVisit && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h3 className="text-2xl font-black text-slate-800">Visit Details</h3>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Visit Log • {new Date(viewingVisit.timestamp).toLocaleString()}</p>
+              </div>
+              <button onClick={() => setViewingVisit(null)} className="p-3 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-2xl transition-all"><X size={24} /></button>
+            </div>
+            
+            <div className="p-8 space-y-8">
+              {/* Outlet Info */}
+              <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Outlet Information</h4>
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                    <Store className="w-6 h-6 text-poppik-green" />
+                  </div>
+                  <div>
+                    <p className="font-black text-lg text-slate-800">{viewingVisit.outlet?.name}</p>
+                    <p className="text-sm text-slate-500 font-medium leading-relaxed">{viewingVisit.outlet?.area}, {viewingVisit.outlet?.city}</p>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1 italic">{viewingVisit.outlet?.address}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visit Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-5 bg-white border border-slate-100 rounded-2xl">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Visit Type</p>
+                  <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${viewingVisit.type === 'ORDER' ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
+                    {viewingVisit.type === 'ORDER' ? 'Order Placed' : 'No Order'}
+                  </span>
+                </div>
+                <div className="p-5 bg-white border border-slate-100 rounded-2xl">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">GPS Status</p>
+                  {viewingVisit.latitude ? (
+                    <div className="flex items-center text-blue-500 font-black text-[10px] uppercase">
+                      <MapPin className="w-3 h-3 mr-1" /> Logged
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-slate-400 font-black text-[10px] uppercase">
+                      <X className="w-3 h-3 mr-1" /> No GPS
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewingVisit.reason && (
+                <div className="p-6 bg-orange-50/30 border border-orange-100/50 rounded-2xl">
+                  <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-2">Reason / Comment</p>
+                  <p className="font-bold text-slate-700 leading-relaxed">{viewingVisit.reason}</p>
+                </div>
+              )}
+
+              {viewingVisit.latitude && (
+                <a 
+                  href={`https://www.google.com/maps?q=${viewingVisit.latitude},${viewingVisit.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center space-x-2"
+                >
+                  <Navigation size={20} />
+                  <span>View on Google Maps</span>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingOrder && (
                     <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
                       <div className="bg-white w-full max-w-2xl rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                         <div className="p-5 md:p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 shrink-0">
@@ -2406,7 +2673,7 @@ const PoppikSFA: React.FC = () => {
                           </p>
                         </div>
                         <button 
-                          onClick={() => { setActiveOutlet(outlet); setCurrentScreen('productCatalog'); }}
+                          onClick={() => { setActiveOutlet(outlet); setCurrentScreen('outletAction'); }}
                           className="w-full py-2.5 md:py-4 bg-slate-900 text-white text-xs md:text-base font-bold rounded-xl md:rounded-2xl hover:bg-poppik-green transition-all transform active:scale-95 flex items-center justify-center space-x-1 md:space-x-2 shadow-lg shadow-black/10"
                         >
                           <span className="whitespace-nowrap">Create Order</span><ChevronRight className="w-3 h-3 md:w-5 md:h-5" />
@@ -2432,6 +2699,103 @@ const PoppikSFA: React.FC = () => {
                         <Plus className="w-6 h-6" />
                         <span>Register Your First Client</span>
                       </button>
+                    </div>
+                  )}
+                </div>
+              </ScreenWrapper>
+            )}
+
+            {currentScreen === 'outletAction' && (
+              <ScreenWrapper title="Select Action" showBack backAction={() => setCurrentScreen('createOrder')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
+                <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-sm">
+                    <div className="flex items-center space-x-6 mb-10">
+                      <div className="w-20 h-20 bg-poppik-beige rounded-3xl flex items-center justify-center shadow-sm">
+                        <Store className="w-10 h-10 text-poppik-black" />
+                      </div>
+                      <div>
+                        <p className="text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] mb-1">Active Outlet</p>
+                        <h2 className="text-3xl font-black text-slate-800">{activeOutlet?.name}</h2>
+                        <p className="text-slate-500 font-bold flex items-center mt-1">
+                          <MapPin className="w-4 h-4 mr-2 text-slate-400" /> {activeOutlet?.area}, {activeOutlet?.city}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <button 
+                        onClick={() => setCurrentScreen('productCatalog')}
+                        className="p-10 bg-slate-900 text-white rounded-[32px] hover:bg-poppik-green transition-all group shadow-xl hover:shadow-green-900/20 active:scale-95 flex flex-col items-center text-center"
+                      >
+                        <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                          <Plus className="w-10 h-10" />
+                        </div>
+                        <h3 className="text-2xl font-black mb-2">Generate Order</h3>
+                        <p className="text-white/60 font-medium">Select products and create a new billing order</p>
+                      </button>
+
+                      <button 
+                        onClick={() => setVisitReason('Owner Not Available')}
+                        className="p-10 bg-white border-2 border-slate-100 text-slate-800 rounded-[32px] hover:border-poppik-gold hover:bg-poppik-gold/5 transition-all group shadow-sm hover:shadow-xl active:scale-95 flex flex-col items-center text-center"
+                      >
+                        <div className="w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                          <Store className="w-10 h-10 text-slate-400" />
+                        </div>
+                        <h3 className="text-2xl font-black mb-2 text-slate-800">No Order / Visit Only</h3>
+                        <p className="text-slate-500 font-medium">Log visit details even if no sales occur</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Visit Reason Dialog (Inline) */}
+                  {visitReason && (
+                    <div className="bg-white p-10 rounded-[40px] border-2 border-poppik-gold shadow-2xl animate-in zoom-in-95 duration-200">
+                      <div className="flex justify-between items-center mb-8">
+                        <div>
+                          <h3 className="text-2xl font-black text-slate-800">Reason for No Order</h3>
+                          <p className="text-slate-500 font-bold">Please select why no order was placed today</p>
+                        </div>
+                        <button onClick={() => setVisitReason('')} className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-2xl"><X size={24} /></button>
+                      </div>
+                      
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {['Owner Not Available', 'Stock Full', 'Price Issue', 'Next Time', 'Payment Pending', 'Other'].map(reason => (
+                            <button 
+                              key={reason}
+                              onClick={() => setVisitReason(reason)}
+                              className={`p-4 rounded-2xl border-2 font-black text-sm uppercase tracking-widest transition-all ${
+                                visitReason === reason 
+                                ? 'bg-poppik-gold text-white border-poppik-gold shadow-lg shadow-poppik-gold/20' 
+                                : 'bg-slate-50 text-slate-400 border-slate-50 hover:border-slate-200'
+                              }`}
+                            >
+                              {reason}
+                            </button>
+                          ))}
+                        </div>
+
+                        {visitReason === 'Other' && (
+                          <div className="animate-in slide-in-from-top-2 duration-200">
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Comment (Mandatory)</label>
+                            <textarea 
+                              value={otherReason}
+                              onChange={e => setOtherReason(e.target.value)}
+                              placeholder="Write detailed reason here..."
+                              className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-gold/10 outline-none transition-all font-bold resize-none min-h-[120px]"
+                            />
+                          </div>
+                        )}
+
+                        <button 
+                          disabled={isSubmittingVisit || (visitReason === 'Other' && !otherReason)}
+                          onClick={() => submitVisit('NO_ORDER')}
+                          className="w-full py-5 bg-poppik-gold text-white font-black rounded-2xl shadow-xl shadow-poppik-gold/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-3 disabled:opacity-50 disabled:scale-100"
+                        >
+                          {isSubmittingVisit ? <RefreshCw className="w-6 h-6 animate-spin" /> : <CheckCheck className="w-6 h-6" />}
+                          <span>{isSubmittingVisit ? 'Submitting...' : 'Confirm & Submit Visit'}</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2709,11 +3073,36 @@ const PoppikSFA: React.FC = () => {
               <ScreenWrapper title="Business Reports" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="space-y-6 md:space-y-8">
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
-                    <h2 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Day-wise Summary</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center">
+                        <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> 
+                        {reportPeriod === 'day' ? 'Daily' : reportPeriod === 'month' ? 'Monthly' : 'Yearly'} Summary
+                      </h2>
+                      <div className="relative">
+                        <select 
+                          value={reportPeriod}
+                          onChange={(e) => setReportPeriod(e.target.value as any)}
+                          className="appearance-none pl-4 pr-10 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-4 focus:ring-poppik-green/10 cursor-pointer"
+                        >
+                          <option value="day">Today</option>
+                          <option value="month">This Month</option>
+                          <option value="year">This Year</option>
+                        </select>
+                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                       <div className="p-5 md:p-6 bg-blue-50 rounded-xl md:rounded-2xl border border-blue-100">
                          <p className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Total Attendance</p>
                          <p className="text-xl md:text-2xl font-black text-blue-800">{dayWiseReport?.totalAttendance || 0}</p>
+                      </div>
+                      <div className="p-5 md:p-6 bg-purple-50 rounded-xl md:rounded-2xl border border-purple-100">
+                         <p className="text-[9px] md:text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Total Visits</p>
+                         <p className="text-xl md:text-2xl font-black text-purple-800">{dayWiseReport?.totalVisits || 0}</p>
+                      </div>
+                      <div className="p-5 md:p-6 bg-orange-50 rounded-xl md:rounded-2xl border border-orange-100">
+                         <p className="text-[9px] md:text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Strike Rate</p>
+                         <p className="text-xl md:text-2xl font-black text-orange-800">{dayWiseReport?.strikeRate || 0}%</p>
                       </div>
                       <div className="p-5 md:p-6 bg-green-50 rounded-xl md:rounded-2xl border border-green-100">
                          <p className="text-[9px] md:text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">Total Sales Value</p>
@@ -2736,7 +3125,7 @@ const PoppikSFA: React.FC = () => {
                       {partyWiseReport && Object.entries(partyWiseReport).map(([outletName, data]) => (
                         <div key={outletName} className="p-5 md:p-6 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100 flex flex-col gap-6">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div><h3 className="font-black text-slate-800 text-base md:text-lg">{outletName}</h3><p className="text-xs md:text-sm text-slate-500 font-bold">{data.totalOrders} Orders Placed</p></div>
+                            <div><h3 className="font-black text-slate-800 text-base md:text-lg">{outletName}</h3><p className="text-xs md:text-sm text-slate-500 font-bold">{data.totalOrders} Orders | {data.visits?.length || 0} Visits</p></div>
                             <div className="text-left md:text-right">
                               <p className="text-lg md:text-xl font-black text-poppik-green">₹{data.totalAmount.toLocaleString()}</p>
                               <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase">Life-time Value</p>
@@ -2744,15 +3133,16 @@ const PoppikSFA: React.FC = () => {
                           </div>
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                            {/* Order History */}
                             {data.orders.map(order => (
                               <button 
-                                key={order.id} 
+                                key={`order-${order.id}`} 
                                 onClick={() => setViewingOrder(order)}
                                 className="p-4 bg-white rounded-xl md:rounded-2xl border border-slate-200 hover:border-poppik-green hover:shadow-lg transition-all text-left group"
                               >
                                 <div className="flex justify-between items-start mb-2">
-                                  <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Order #{order.id}</span>
-                                  <span className="text-[9px] md:text-[10px] font-black text-poppik-green uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
+                                  <span className="text-[10px] md:text-xs font-black text-poppik-green uppercase tracking-widest">Order #{order.id}</span>
+                                  <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
                                 </div>
                                 <div className="flex justify-between items-end">
                                   <div>
@@ -2762,6 +3152,23 @@ const PoppikSFA: React.FC = () => {
                                   <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
                                 </div>
                               </button>
+                            ))}
+
+                            {/* No-Order Visits */}
+                            {data.visits?.filter(v => v.type === 'NO_ORDER').map(visit => (
+                              <div 
+                                key={`visit-${visit.id}`}
+                                className="p-4 bg-orange-50/30 rounded-xl md:rounded-2xl border border-orange-100/50 text-left"
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <span className="text-[10px] md:text-xs font-black text-orange-500 uppercase tracking-widest">No-Order Visit</span>
+                                  <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase">{new Date(visit.timestamp).toLocaleDateString()}</span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold text-slate-700 leading-tight mb-1">{visit.reason}</p>
+                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Visit Recorded</p>
+                                </div>
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -2801,6 +3208,53 @@ const PoppikSFA: React.FC = () => {
                       ))}
                       {(!locationWiseReport || Object.keys(locationWiseReport).length === 0) && (
                         <p className="text-slate-400 text-xs md:text-sm italic text-center py-4 col-span-full">No location data available yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Navigation className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Visit History</h2>
+                      <button 
+                        onClick={downloadVisitReport}
+                        className="p-2 md:p-3 bg-poppik-green text-white rounded-xl hover:bg-green-600 transition-all shadow-md flex items-center shrink-0"
+                        title="Download Report"
+                      >
+                        <FileText className="w-4 h-4 md:w-5 md:h-5" />
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {visitHistory.map((visit) => (
+                        <button 
+                          key={visit.id} 
+                          onClick={() => setViewingVisit(visit)}
+                          className="w-full p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-poppik-green transition-all text-left"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${visit.type === 'ORDER' ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
+                              {visit.type === 'ORDER' ? <ShoppingCart className="w-6 h-6" /> : <Store className="w-6 h-6" />}
+                            </div>
+                            <div>
+                              <p className="font-black text-slate-800 text-sm md:text-base">{visit.outlet?.name || 'Unknown Outlet'}</p>
+                              <div className="flex items-center space-x-3 mt-0.5">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(visit.timestamp).toLocaleDateString()} • {new Date(visit.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                {visit.latitude && <span className="flex items-center text-[9px] font-black text-blue-500 uppercase bg-blue-50 px-2 py-0.5 rounded-full"><MapPin className="w-2 h-2 mr-1" /> GPS Logged</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center">
+                            <div className="mr-3">
+                              <span className={`inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-1 ${visit.type === 'ORDER' ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
+                                {visit.type === 'ORDER' ? 'Order' : 'Visit Only'}
+                              </span>
+                              {visit.reason && <p className="text-[10px] font-bold text-slate-500 italic max-w-[120px] md:max-w-xs truncate">{visit.reason}</p>}
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
+                          </div>
+                        </button>
+                      ))}
+                      {visitHistory.length === 0 && (
+                        <p className="text-slate-400 text-xs md:text-sm italic text-center py-4">No visit activity recorded yet</p>
                       )}
                     </div>
                   </div>
@@ -3207,33 +3661,61 @@ const PoppikSFA: React.FC = () => {
                               </div>
                            </div>
                            <div className="flex gap-4">
-                              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Total Revenue</p><p className="text-xl font-black text-poppik-green">₹{salesman.totalRevenue.toLocaleString()}</p></div>
-                              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Outlets Covered</p><p className="text-xl font-black text-slate-800">{salesman.uniqueOutlets}</p></div>
+                              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Revenue</p><p className="text-xl font-black text-poppik-green">₹{salesman.totalRevenue.toLocaleString()}</p></div>
+                              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Visits</p><p className="text-xl font-black text-slate-800">{salesman.totalVisits || 0}</p></div>
+                              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Strike Rate</p><p className="text-xl font-black text-orange-500">{salesman.strikeRate || 0}%</p></div>
+                              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Outlets</p><p className="text-xl font-black text-slate-800">{salesman.uniqueOutlets}</p></div>
                            </div>
                         </div>
-                        <div className="p-8">
-                           <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Recent Outlet Orders & Activity</h4>
-                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {salesman.recentOrders.map((order: any) => (
-                                <div key={order.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-start overflow-hidden">
-                                   <div className="flex-1 pr-4 min-w-0">
-                                      <p className="font-bold text-slate-800 truncate">{order.outletName}</p>
-                                      <p className="text-xs text-slate-400 mb-2">{new Date(order.date).toLocaleDateString()}</p>
-                                      <div className="flex flex-wrap gap-1">
-                                         {(order.orderItems || []).map((item: any, idx: number) => (
-                                           <span key={idx} className="px-2 py-0.5 bg-white border border-slate-200 rounded-full text-[9px] font-bold text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
-                                              {item.productName} (x{item.quantity})
-                                           </span>
-                                         ))}
-                                      </div>
-                                   </div>
-                                   <div className="text-right shrink-0">
-                                      <p className="font-black text-slate-800">₹{order.amount.toLocaleString('en-IN')}</p>
-                                      <p className="text-[10px] font-bold text-poppik-green uppercase">Success</p>
-                                   </div>
-                                </div>
-                              ))}
-                              {salesman.recentOrders.length === 0 && <p className="col-span-full text-slate-400 text-sm italic text-center py-4">No activity recorded yet</p>}
+                        <div className="p-8 border-t border-slate-50">
+                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                             <div>
+                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center"><ShoppingCart className="w-4 h-4 mr-2" /> Recent Orders</h4>
+                               <div className="space-y-3">
+                                  {salesman.recentOrders.map((order: any) => (
+                                    <button 
+                                      key={order.id} 
+                                      onClick={() => setViewingOrder(order)}
+                                      className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:border-poppik-green hover:shadow-lg transition-all group"
+                                    >
+                                       <div className="min-w-0 flex-1 text-left">
+                                          <p className="font-bold text-slate-800 truncate text-sm group-hover:text-poppik-green transition-colors">{order.outlet?.name}</p>
+                                          <p className="text-[10px] text-slate-400 font-bold">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                       </div>
+                                       <div className="text-right shrink-0 ml-4 flex items-center">
+                                          <p className="font-black text-poppik-green text-sm mr-2">₹{order.totalAmount.toLocaleString()}</p>
+                                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
+                                       </div>
+                                    </button>
+                                  ))}
+                                  {salesman.recentOrders.length === 0 && <p className="text-slate-400 text-xs italic py-2">No orders yet</p>}
+                               </div>
+                             </div>
+                             <div>
+                               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center"><Navigation className="w-4 h-4 mr-2" /> Recent Visits</h4>
+                               <div className="space-y-3">
+                                  {salesman.recentVisits?.map((visit: any) => (
+                                    <button 
+                                      key={visit.id} 
+                                      onClick={() => setViewingVisit(visit)}
+                                      className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:border-poppik-green hover:shadow-lg transition-all group"
+                                    >
+                                       <div className="min-w-0 flex-1 text-left">
+                                          <p className="font-bold text-slate-800 truncate text-sm group-hover:text-poppik-green transition-colors">{visit.outlet?.name}</p>
+                                          <p className="text-[10px] text-slate-400 font-bold">{new Date(visit.timestamp).toLocaleDateString()} • {visit.type === 'ORDER' ? 'Order' : 'Visit Only'}</p>
+                                       </div>
+                                       <div className="text-right shrink-0 ml-4 flex items-center">
+                                          <div className="mr-2">
+                                            <p className={`text-[10px] font-black uppercase tracking-widest ${visit.type === 'ORDER' ? 'text-poppik-green' : 'text-orange-500'}`}>{visit.type === 'ORDER' ? 'Success' : 'No Order'}</p>
+                                            {visit.reason && <p className="text-[9px] font-bold text-slate-400 truncate max-w-[80px] italic">{visit.reason}</p>}
+                                          </div>
+                                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
+                                       </div>
+                                    </button>
+                                  ))}
+                                  {(!salesman.recentVisits || salesman.recentVisits.length === 0) && <p className="text-slate-400 text-xs italic py-2">No visits yet</p>}
+                               </div>
+                             </div>
                            </div>
                         </div>
                      </div>
@@ -3499,6 +3981,79 @@ const PoppikSFA: React.FC = () => {
         )}
         <BottomNavItem icon={<User />} label="Profile" screen="profile" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
       </div>
+
+      {/* Visit Detail Modal */}
+      {viewingVisit && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h3 className="text-2xl font-black text-slate-800">Visit Details</h3>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Visit Log • {new Date(viewingVisit.timestamp).toLocaleString()}</p>
+              </div>
+              <button onClick={() => setViewingVisit(null)} className="p-3 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-2xl transition-all"><X size={24} /></button>
+            </div>
+            
+            <div className="p-8 space-y-8">
+              {/* Outlet Info */}
+              <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Outlet Information</h4>
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                    <Store className="w-6 h-6 text-poppik-green" />
+                  </div>
+                  <div>
+                    <p className="font-black text-lg text-slate-800">{viewingVisit.outlet?.name}</p>
+                    <p className="text-sm text-slate-500 font-medium leading-relaxed">{viewingVisit.outlet?.area}, {viewingVisit.outlet?.city}</p>
+                    <p className="text-[10px] text-slate-400 font-bold mt-1 italic">{viewingVisit.outlet?.address}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visit Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-5 bg-white border border-slate-100 rounded-2xl">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Visit Type</p>
+                  <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${viewingVisit.type === 'ORDER' ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
+                    {viewingVisit.type === 'ORDER' ? 'Order Placed' : 'No Order'}
+                  </span>
+                </div>
+                <div className="p-5 bg-white border border-slate-100 rounded-2xl">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">GPS Status</p>
+                  {viewingVisit.latitude ? (
+                    <div className="flex items-center text-blue-500 font-black text-[10px] uppercase">
+                      <MapPin className="w-3 h-3 mr-1" /> Logged
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-slate-400 font-black text-[10px] uppercase">
+                      <X className="w-3 h-3 mr-1" /> No GPS
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewingVisit.reason && (
+                <div className="p-6 bg-orange-50/30 border border-orange-100/50 rounded-2xl">
+                  <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-2">Reason / Comment</p>
+                  <p className="font-bold text-slate-700 leading-relaxed">{viewingVisit.reason}</p>
+                </div>
+              )}
+
+              {viewingVisit.latitude && (
+                <a 
+                  href={`https://www.google.com/maps?q=${viewingVisit.latitude},${viewingVisit.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center space-x-2"
+                >
+                  <Navigation size={20} />
+                  <span>View on Google Maps</span>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Order Detail Modal */}
       {viewingOrder && (

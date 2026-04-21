@@ -237,6 +237,10 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
         attendances: {
           orderBy: { timestamp: 'desc' },
           take: 1
+        },
+        visits: {
+          include: { outlet: true },
+          orderBy: { timestamp: 'desc' }
         }
       }
     });
@@ -244,7 +248,14 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
     const analyzedReports = reports.map(salesman => {
       const totalRevenue = salesman.orders.reduce((sum, o) => sum + o.totalAmount, 0);
       const totalOrders = salesman.orders.length;
-      const uniqueOutlets = new Set(salesman.orders.map(o => o.outletId)).size;
+      const totalVisits = salesman.visits.length;
+      
+      // Combine outlet IDs from both orders and visits to get total unique outlets covered
+      const orderOutletIds = salesman.orders.map(o => o.outletId);
+      const visitOutletIds = salesman.visits.map(v => v.outletId);
+      const uniqueOutlets = new Set([...orderOutletIds, ...visitOutletIds]).size;
+
+      const strikeRate = totalVisits > 0 ? (totalOrders / totalVisits) * 100 : 0;
       
       return {
         id: salesman.id,
@@ -252,17 +263,44 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
         phone: salesman.phone,
         totalRevenue,
         totalOrders,
+        totalVisits,
+        strikeRate: parseFloat(strikeRate.toFixed(2)),
         uniqueOutlets,
         lastPunch: salesman.attendances[0] || null,
         recentOrders: salesman.orders.slice(-5).map(o => ({
           id: o.id,
-          outletName: o.outlet.name,
-          amount: o.totalAmount,
-          date: o.createdAt,
+          totalAmount: o.totalAmount,
+          createdAt: o.createdAt,
+          status: o.status,
+          outlet: {
+            name: o.outlet.name,
+            address: o.outlet.address,
+            owner_no: o.outlet.owner_no,
+            gstNumber: o.outlet.gstNumber
+          },
           orderItems: o.orderItems.map(item => ({
-            productName: item.product.name,
-            quantity: item.quantity
+            product: {
+              name: item.product.name,
+              productCode: item.product.productCode,
+              boxSize: item.product.boxSize
+            },
+            quantity: item.quantity,
+            priceAtTime: item.priceAtTime
           }))
+        })),
+        recentVisits: salesman.visits.slice(-5).map(v => ({
+          id: v.id,
+          outlet: v.outlet ? {
+            name: v.outlet.name,
+            area: v.outlet.area,
+            city: v.outlet.city,
+            address: v.outlet.address
+          } : null,
+          type: v.type,
+          reason: v.reason,
+          timestamp: v.timestamp,
+          latitude: v.latitude,
+          longitude: v.longitude
         }))
       };
     });
@@ -676,39 +714,105 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
   }
 });
 
-// --- Reporting APIs ---
-app.get('/api/reports/day-wise', authenticateToken, async (req, res) => {
+// --- Visit APIs ---
+app.post('/api/visits', authenticateToken, async (req, res) => {
+  const { outletId, type, reason, latitude, longitude } = req.body;
   try {
-    console.log(`[REPORTS] Day-wise report requested by User ID: ${req.user.id}`);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const visit = await prisma.visit.create({
+      data: {
+        userId: req.user.id,
+        outletId: parseInt(outletId),
+        type, // ORDER or NO_ORDER
+        reason,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
+        timestamp: new Date()
+      }
+    });
+    res.status(201).json(visit);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    const [attendances, orders] = await Promise.all([
+app.get('/api/visits', authenticateToken, async (req, res) => {
+  try {
+    const visits = await prisma.visit.findMany({
+      where: { userId: req.user.id },
+      include: { outlet: true },
+      orderBy: { timestamp: 'desc' }
+    });
+    res.json(visits);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Reporting APIs ---
+app.get('/api/reports/summary', authenticateToken, async (req, res) => {
+  try {
+    const { period = 'day' } = req.query;
+    console.log(`[REPORTS] ${period}-wise summary requested by User ID: ${req.user.id}`);
+    
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    if (period === 'month') {
+      startDate.setDate(1); // First day of current month
+    } else if (period === 'year') {
+      startDate.setMonth(0, 1); // January 1st of current year
+    }
+
+    const [attendances, orders, visits] = await Promise.all([
       prisma.attendance.count({
         where: {
           userId: req.user.id,
-          timestamp: { gte: today }
+          timestamp: { gte: startDate }
         }
       }),
-      prisma.order.aggregate({
+      prisma.order.count({
         where: {
           userId: req.user.id,
-          createdAt: { gte: today }
-        },
-        _sum: { totalAmount: true }
+          createdAt: { gte: startDate }
+        }
+      }),
+      prisma.visit.count({
+        where: {
+          userId: req.user.id,
+          timestamp: { gte: startDate }
+        }
       })
     ]);
 
-    console.log(`[REPORTS] Day-wise results for User ${req.user.id}: Attendances=${attendances}, Sales=${orders._sum.totalAmount || 0}`);
+    const ordersSum = await prisma.order.aggregate({
+      where: {
+        userId: req.user.id,
+        createdAt: { gte: startDate }
+      },
+      _sum: { totalAmount: true }
+    });
+
+    const strikeRate = visits > 0 ? (orders / visits) * 100 : 0;
+
+    console.log(`[REPORTS] ${period}-wise results for User ${req.user.id}: Attendances=${attendances}, Sales=${ordersSum._sum.totalAmount || 0}, Visits=${visits}, Orders=${orders}`);
 
     res.json({
       totalAttendance: attendances,
-      totalSalesValue: orders._sum.totalAmount || 0
+      totalSalesValue: ordersSum._sum.totalAmount || 0,
+      totalVisits: visits,
+      totalOrders: orders,
+      strikeRate: parseFloat(strikeRate.toFixed(2))
     });
   } catch (err) {
-    console.error("[REPORTS] Error in day-wise API:", err.message);
+    console.error("[REPORTS] Error in summary API:", err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+app.get('/api/reports/day-wise', authenticateToken, async (req, res) => {
+  // Keeping this for backward compatibility if any other part uses it
+  // But we will primarily use /api/reports/summary
+  res.redirect(`/api/reports/summary?period=day`);
 });
 
 app.get('/api/reports/party-wise', authenticateToken, async (req, res) => {
@@ -722,7 +826,14 @@ app.get('/api/reports/party-wise', authenticateToken, async (req, res) => {
     const orders = await prisma.order.findMany({
       where: { userId: req.user.id },
       include: { 
-        outlet: true,
+        outlet: {
+          include: {
+            visits: {
+              where: { userId: req.user.id },
+              orderBy: { timestamp: 'desc' }
+            }
+          }
+        },
         orderItems: {
           include: { product: true }
         }
@@ -739,7 +850,15 @@ app.get('/api/reports/party-wise', authenticateToken, async (req, res) => {
         acc[outletName] = { 
           totalOrders: 0, 
           totalAmount: 0, 
-          orders: [] 
+          orders: [],
+          visits: (order.outlet.visits || []).map(v => ({
+            id: v.id,
+            type: v.type,
+            reason: v.reason,
+            timestamp: v.timestamp,
+            latitude: v.latitude,
+            longitude: v.longitude
+          }))
         };
       }
       

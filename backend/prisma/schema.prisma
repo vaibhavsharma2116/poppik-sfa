@@ -22,6 +22,7 @@ model User {
   notifications  Notification[]
   orders         Order[]
   outlets        Outlet[]
+  visits         Visit[]
 }
 
 model Leave {
@@ -72,6 +73,7 @@ model Outlet {
   userId     Int?
   createdAt  DateTime     @default(now())
   orders     Order[]
+  visits     Visit[]
   user       User?        @relation(fields: [userId], references: [id])
 }
 
@@ -110,6 +112,19 @@ model OrderItem {
   priceAtTime Float
   order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product     Product @relation(fields: [productId], references: [id])
+}
+
+model Visit {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  outletId  Int
+  type      String   // "ORDER" or "NO_ORDER"
+  reason    String?  // Mandatory if NO_ORDER
+  latitude  Float?
+  longitude Float?
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
 }
 
 enum OutletClass {
