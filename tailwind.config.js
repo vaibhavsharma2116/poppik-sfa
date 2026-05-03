@@ -8,7 +8,7 @@ export default {
     extend: {
       colors: {
         poppik: {
-          green: '#2D5A27',
+          pink: '#EC73AB',
           beige: '#F5F5F0',
           black: '#1A1A1A',
           gold: '#C5A059'

@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'https://api.poppik.in',
+          target: env.VITE_API_URL || 'https://api.dlb.co.in',
           changeOrigin: true,
         }
       }
@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
         name: 'Poppik SFA',
         short_name: 'Poppik',
         description: 'Sales Force Automation for Poppik Lifestyle',
-        theme_color: '#2D5A27',
+        theme_color: '#EC73AB',
         icons: [
           {
             src: 'favicon.svg',

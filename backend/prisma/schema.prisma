@@ -120,6 +120,9 @@ model Visit {
   outletId  Int
   type      String   // "ORDER" or "NO_ORDER"
   reason    String?  // Mandatory if NO_ORDER
+  notes     String?
+  remark    String?
+  photo     String?
   latitude  Float?
   longitude Float?
   timestamp DateTime @default(now())

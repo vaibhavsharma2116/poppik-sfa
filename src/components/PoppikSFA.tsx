@@ -36,13 +36,18 @@ import {
   Hash,
   ShieldCheck,
   Building2,
-  Navigation
+  Navigation,
+  Eye,
+  EyeOff,
+  Image
 } from 'lucide-react';
 
 // API Base URL
 const API_BASE = import.meta.env.VITE_API_URL 
   ? `${import.meta.env.VITE_API_URL}/api` 
   : '/api';
+
+const FILE_BASE = import.meta.env.VITE_API_URL || '';
 
 // Safe Storage Helper to prevent SecurityError in restricted environments
 const createSafeStorage = () => {
@@ -330,7 +335,7 @@ const ScreenWrapper: React.FC<{
               onClick={() => setShowConnectionDetails(!showConnectionDetails)}
               className={`hidden md:flex items-center px-4 py-2 rounded-full border transition-all hover:shadow-md ${
                 isOnline 
-                ? 'bg-green-50 text-poppik-green border-green-100 hover:bg-green-100' 
+                ? 'bg-pink-50 text-poppik-pink border-pink-100 hover:bg-pink-100' 
                 : 'bg-red-50 text-red-500 border-red-100 hover:bg-red-100'
               }`}
             >
@@ -343,7 +348,7 @@ const ScreenWrapper: React.FC<{
               onClick={() => setShowConnectionDetails(!showConnectionDetails)}
               className={`md:hidden flex items-center px-2 py-1 rounded-full border transition-all ${
                 isOnline 
-                ? 'bg-green-50 text-poppik-green border-green-100' 
+                ? 'bg-pink-50 text-poppik-pink border-pink-100' 
                 : 'bg-red-50 text-red-500 border-red-100'
               }`}
             >
@@ -365,12 +370,12 @@ const ScreenWrapper: React.FC<{
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isOnline ? 'bg-green-100 text-poppik-green' : 'bg-red-100 text-red-500'}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isOnline ? 'bg-pink-100 text-poppik-pink' : 'bg-red-100 text-red-500'}`}>
                           {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
                         </div>
                         <span className="text-xs font-bold text-slate-700">{isOnline ? 'Connected' : 'Disconnected'}</span>
                       </div>
-                      <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                      <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-pink-500 animate-pulse' : 'bg-red-500'}`}></div>
                     </div>
 
                     {pendingSyncCount > 0 && (
@@ -436,7 +441,7 @@ const ScreenWrapper: React.FC<{
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                           n.type === 'order' ? 'bg-orange-100 text-orange-600' :
                           n.type === 'attendance' ? 'bg-blue-100 text-blue-600' :
-                          'bg-green-100 text-poppik-green'
+                          'bg-pink-100 text-poppik-pink'
                         }`}>
                           {n.type === 'order' ? <ShoppingCart className="w-5 h-5" /> :
                            n.type === 'attendance' ? <Clock className="w-5 h-5" /> :
@@ -464,7 +469,7 @@ const ScreenWrapper: React.FC<{
                       setShowNotifications(false);
                       if (onViewAllNotifications) onViewAllNotifications();
                     }}
-                    className="w-full p-4 text-xs font-black text-poppik-green uppercase tracking-widest hover:bg-slate-50 transition-colors border-t border-slate-50"
+                    className="w-full p-4 text-xs font-black text-poppik-pink uppercase tracking-widest hover:bg-slate-50 transition-colors border-t border-slate-50"
                   >
                     View All Notifications
                   </button>
@@ -480,7 +485,7 @@ const ScreenWrapper: React.FC<{
              </div>
              <div 
                onClick={onProfileClick}
-               className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100 shadow-sm hover:scale-105 hover:border-poppik-green transition-all cursor-pointer"
+               className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100 shadow-sm hover:scale-105 hover:border-poppik-pink transition-all cursor-pointer"
              >
                <User className="text-slate-600 w-6 h-6" />
              </div>
@@ -495,235 +500,201 @@ const ScreenWrapper: React.FC<{
 };
 
 const AttendanceView: React.FC<{
-  isPunchedIn: boolean,
-  onPunch: (type: 'IN' | 'OUT') => void,
-  api: any
-}> = ({ isPunchedIn, onPunch, api }) => {
-  const [leaves, setLeaves] = useState<Leave[]>([]);
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [leaveData, setLeaveData] = useState({ startDate: '', endDate: '', reason: '' });
-  const [isLoading, setIsLoading] = useState(false);
+  outlets: Outlet[],
+  activeOutlet: Outlet | null,
+  setActiveOutlet: (o: Outlet | null) => void,
+  setCurrentScreen: (s: Screen) => void,
+  visitFlowStep: 'list' | 'visitForm',
+  setVisitFlowStep: (step: 'list' | 'visitForm') => void,
+  visitNotes: string,
+  setVisitNotes: (s: string) => void,
+  visitRemark: string,
+  setVisitRemark: (s: string) => void,
+  visitImage: File | null,
+  setVisitImage: (f: File | null) => void,
+  onSubmitVisit: (type: 'ORDER' | 'NO_ORDER', reason?: string) => void,
+  isSubmittingVisit: boolean
+}> = ({ 
+  outlets, 
+  activeOutlet, 
+  setActiveOutlet, 
+  setCurrentScreen, 
+  visitFlowStep, 
+  setVisitFlowStep, 
+  visitNotes, 
+  setVisitNotes, 
+  visitRemark, 
+  setVisitRemark, 
+  visitImage, 
+  setVisitImage,
+  onSubmitVisit,
+  isSubmittingVisit
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchLeaves();
-  }, []);
+  if (visitFlowStep === 'visitForm') {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+          <div className="mb-6">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Outlet</p>
+            <h3 className="text-xl font-black text-slate-800">{activeOutlet?.name}</h3>
+          </div>
 
-  const fetchLeaves = async () => {
-    try {
-      const res = await api.get('/leaves');
-      setLeaves(res.data);
-    } catch (err) { console.error("Error fetching leaves", err); }
-  };
-
-  const handleApplyLeave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      await api.post('/leaves', leaveData);
-      alert("Leave application submitted successfully!");
-      setShowLeaveModal(false);
-      setLeaveData({ startDate: '', endDate: '', reason: '' });
-      fetchLeaves();
-    } catch (err) { alert("Failed to apply for leave"); }
-    finally { setIsLoading(false); }
-  };
-
-  // Simple custom calendar helper
-  const today = new Date();
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
-  
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-  const handleDateClick = (day: number) => {
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const dayStr = String(day).padStart(2, '0');
-    const formattedDate = `${year}-${month}-${dayStr}`;
-    
-    setLeaveData({
-      ...leaveData,
-      startDate: formattedDate,
-      endDate: formattedDate
-    });
-    setShowLeaveModal(true);
-  };
-
-  return (
-    <div className="px-4 md:px-0 space-y-6 md:space-y-8 animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-        {/* Punch In/Out Section */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[40px] border border-slate-100 shadow-sm">
-          <div className="flex items-center space-x-4 mb-6 md:mb-8">
-            <div className="p-3 md:p-4 bg-blue-50 rounded-xl md:rounded-2xl text-blue-600">
-              <Clock size={28} className="md:w-8 md:h-8" />
-            </div>
+          <div className="space-y-4">
             <div>
-              <h2 className="text-xl md:text-2xl font-black text-slate-800">Daily Attendance</h2>
-              <p className="text-slate-400 font-bold text-[10px] md:text-sm uppercase tracking-widest">Mark your presence</p>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Notes</label>
+              <input 
+                type="text"
+                value={visitNotes}
+                onChange={e => setVisitNotes(e.target.value)}
+                placeholder="Enter notes..."
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold"
+              />
             </div>
-          </div>
 
-          <div className="p-6 md:p-10 bg-slate-50 rounded-2xl md:rounded-[32px] border border-slate-100 flex flex-col items-center justify-center text-center">
-            <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mb-4 md:mb-6 ${isPunchedIn ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
-              <Clock size={40} className={`md:w-12 md:h-12 ${isPunchedIn ? 'animate-pulse' : ''}`} />
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Remark</label>
+              <textarea 
+                value={visitRemark}
+                onChange={e => setVisitRemark(e.target.value)}
+                placeholder="Enter remark..."
+                rows={4}
+                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold resize-none"
+              />
             </div>
-            <h3 className="text-lg md:text-xl font-black text-slate-800 mb-2">
-              {isPunchedIn ? 'You are currently Punched In' : 'Ready to start your day?'}
-            </h3>
-            <p className="text-sm md:text-base text-slate-500 font-medium mb-6 md:mb-8 max-w-xs">
-              {isPunchedIn 
-                ? 'Your location is being tracked live for sales operations.' 
-                : 'Please punch in to begin your work day and start location tracking.'}
-            </p>
-            
-            <button 
-              onClick={() => onPunch(isPunchedIn ? 'OUT' : 'IN')}
-              className={`w-full py-3 md:py-5 rounded-xl md:rounded-2xl text-sm md:text-lg font-black uppercase tracking-widest md:tracking-[0.2em] shadow-xl transition-all active:scale-95 ${
-                isPunchedIn 
-                ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-orange-200' 
-                : 'bg-poppik-green text-white hover:bg-green-600 shadow-green-200'
-              }`}
-            >
-              {isPunchedIn ? 'Punch Out Now' : 'Punch In Now'}
-            </button>
-          </div>
-        </div>
 
-        {/* Calendar & Leave Section */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[40px] border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6 md:mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 md:p-4 bg-purple-50 rounded-xl md:rounded-2xl text-purple-600">
-                <Calendar size={28} className="md:w-8 md:h-8" />
-              </div>
-              <div>
-                <h2 className="text-xl md:text-2xl font-black text-slate-800">Leave Calendar</h2>
-                <p className="text-slate-400 font-bold text-[10px] md:text-sm uppercase tracking-widest">{monthNames[today.getMonth()]} {today.getFullYear()}</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setShowLeaveModal(true)}
-              className="p-3 md:p-4 bg-slate-900 text-white rounded-xl md:rounded-2xl hover:bg-slate-800 transition-all shadow-lg active:scale-95"
-            >
-              <Plus size={20} className="md:w-6 md:h-6" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-7 gap-1 md:gap-2 mb-4">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
-              <div key={`${day}-${idx}`} className="text-center text-[10px] font-black text-slate-400 uppercase py-2">{day}</div>
-            ))}
-            {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-              <div key={`empty-${i}`} className="p-2 md:p-3"></div>
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const isToday = day === today.getDate();
-              return (
-                <div 
-                  key={day} 
-                  onClick={() => handleDateClick(day)}
-                  className={`p-2 md:p-3 text-center rounded-lg md:rounded-xl text-xs md:text-sm font-bold transition-colors cursor-pointer ${
-                    isToday ? 'bg-poppik-green text-white' : 'hover:bg-slate-50 text-slate-600'
-                  }`}
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Upload Image</label>
+              <div className="relative">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={e => setVisitImage(e.target.files?.[0] || null)}
+                  className="hidden" 
+                  id="visit-image-upload"
+                />
+                <label 
+                  htmlFor="visit-image-upload"
+                  className="w-full py-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-poppik-pink hover:bg-pink-50 transition-all"
                 >
-                  {day}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 md:mt-8">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Recent Leave Requests</h4>
-            <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-              {leaves.length > 0 ? (
-                leaves.map(leave => (
-                  <div key={leave.id} className="p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-between border border-slate-100">
-                    <div>
-                      <p className="text-xs md:text-sm font-bold text-slate-800">{new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}</p>
-                      <p className="text-[9px] md:text-[10px] text-slate-500 mt-1 truncate max-w-[120px] md:max-w-[150px]">{leave.reason}</p>
+                  {visitImage ? (
+                    <div className="flex items-center space-x-2 text-poppik-pink">
+                      <CheckCheck size={20} />
+                      <span className="font-bold text-sm">{visitImage.name}</span>
                     </div>
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${
-                      leave.status === 'Approved' ? 'bg-green-100 text-poppik-green' :
-                      leave.status === 'Rejected' ? 'bg-red-100 text-red-500' :
-                      'bg-orange-100 text-orange-500'
-                    }`}>
-                      {leave.status}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-6 text-slate-400 text-xs font-bold">No leave requests found</div>
-              )}
+                  ) : (
+                    <>
+                      <Image className="w-8 h-8 text-slate-300 mb-2" />
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Upload Image</span>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            <div className="flex space-x-4 pt-4">
+              <button 
+                onClick={() => setVisitFlowStep('list')}
+                className="flex-1 py-4 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all"
+              >
+                Back
+              </button>
+              <button 
+                disabled={isSubmittingVisit}
+                onClick={() => onSubmitVisit('NO_ORDER')}
+                className="flex-[2] py-4 bg-poppik-pink text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-pink-600 shadow-lg shadow-pink-100 transition-all flex items-center justify-center space-x-2"
+              >
+                {isSubmittingVisit ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCheck className="w-4 h-4" />}
+                <span>Submit Visit</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Leave Application Modal */}
-      {showLeaveModal && (
-        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden">
-            <div className="p-6 md:p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-              <h3 className="text-xl md:text-2xl font-black text-slate-800">Apply for Leave</h3>
-              <button onClick={() => setShowLeaveModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={24} className="md:w-7 md:h-7" /></button>
+  const filteredOutlets = outlets.filter(o => 
+    o.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (o.area && o.area.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Search Bar */}
+      <div className="relative group">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+        <input 
+          type="text" 
+          placeholder="Search clients..." 
+          value={searchQuery} 
+          onChange={(e) => setSearchQuery(e.target.value)} 
+          className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-poppik-pink/10 shadow-sm transition-all font-bold" 
+        />
+      </div>
+
+      {/* Client List */}
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="divide-y divide-slate-50">
+          {filteredOutlets.map((outlet, idx) => (
+            <div key={outlet.id} className="p-4 md:p-6 flex items-center justify-between hover:bg-slate-50 transition-colors gap-3">
+              <div className="flex items-center space-x-3 md:space-x-12 overflow-hidden">
+                <div className="flex flex-col items-center justify-center min-w-[45px] md:min-w-[60px] flex-shrink-0">
+                  <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-tighter">Client</span>
+                  <span className="text-sm md:text-lg font-black text-slate-300">{idx + 1}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm md:text-lg font-black text-slate-800 leading-tight truncate">{outlet.name}</p>
+                  <p className="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5 truncate">{outlet.area || outlet.city}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+                {/* Order Button [O] */}
+                <button 
+                  onClick={() => {
+                    setActiveOutlet(outlet);
+                    setCurrentScreen('productCatalog');
+                  }}
+                  className="w-9 h-9 md:w-11 md:h-11 bg-[#EC73AB] text-white rounded flex items-center justify-center hover:opacity-90 transition-all shadow-sm font-black text-sm md:text-lg"
+                  title="Take Order"
+                >
+                  O
+                </button>
+                {/* Visit Button [V] */}
+                <button 
+                  onClick={() => {
+                    setActiveOutlet(outlet);
+                    setVisitFlowStep('visitForm');
+                  }}
+                  className="w-9 h-9 md:w-11 md:h-11 bg-[#e11d48] text-white rounded flex items-center justify-center hover:opacity-90 transition-all shadow-sm font-black text-sm md:text-lg"
+                  title="Mark Visit"
+                >
+                  V
+                </button>
+              </div>
             </div>
-            <form onSubmit={handleApplyLeave} className="p-6 md:p-8 space-y-5 md:space-y-6">
-              <div className="grid grid-cols-2 gap-4 md:gap-6">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Start Date</label>
-                  <input 
-                    type="date" 
-                    required
-                    value={leaveData.startDate}
-                    onChange={e => setLeaveData({...leaveData, startDate: e.target.value})}
-                    className="w-full p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold text-sm md:text-base" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">End Date</label>
-                  <input 
-                    type="date" 
-                    required
-                    value={leaveData.endDate}
-                    onChange={e => setLeaveData({...leaveData, endDate: e.target.value})}
-                    className="w-full p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold text-sm md:text-base" 
-                  />
-                </div>
+          ))}
+          {filteredOutlets.length === 0 && (
+            <div className="p-12 text-center flex flex-col items-center justify-center animate-in zoom-in-95 duration-300">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                <Search className="w-10 h-10 text-slate-200" />
               </div>
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Reason for Leave</label>
-                <textarea 
-                  required
-                  rows={4}
-                  value={leaveData.reason}
-                  onChange={e => setLeaveData({...leaveData, reason: e.target.value})}
-                  className="w-full p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold resize-none text-sm md:text-base"
-                  placeholder="Tell us why you need leave..."
-                ></textarea>
-              </div>
-              <div className="flex space-x-3 md:space-x-4 pt-2 md:pt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowLeaveModal(false)}
-                  className="flex-1 py-3 md:py-4 bg-slate-100 text-slate-600 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-xl md:rounded-2xl hover:bg-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isLoading}
-                  className="flex-2 py-3 md:py-4 bg-poppik-green text-white text-[10px] md:text-xs font-black uppercase tracking-widest rounded-xl md:rounded-2xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all flex items-center justify-center"
-                >
-                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Submit Application
-                </button>
-              </div>
-            </form>
-          </div>
+              <h3 className="text-xl font-black text-slate-800 mb-2">Client Not Found</h3>
+              <p className="text-slate-400 font-bold max-w-[250px] mx-auto mb-8">
+                We couldn't find any outlet matching "{searchQuery}". Would you like to add it?
+              </p>
+              <button 
+                onClick={() => setCurrentScreen('addClient')}
+                className="px-8 py-4 bg-poppik-pink text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-pink-100 hover:bg-pink-600 transition-all flex items-center"
+              >
+                <Plus size={16} className="mr-2" />
+                Register New Client
+              </button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -732,7 +703,7 @@ const StatCard: React.FC<{icon: React.ReactNode, value: string, label: string, s
   <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm flex flex-col hover:shadow-2xl transition-all group">
     <div className="flex items-center justify-between mb-6">
        <div className="p-4 bg-slate-50 rounded-2xl group-hover:scale-110 transition-transform">{React.cloneElement(icon as React.ReactElement, { className: 'w-8 h-8' } as any)}</div>
-       <span className="text-[10px] font-black text-poppik-green bg-green-50 px-3 py-1.5 rounded-full uppercase">{trend}</span>
+       <span className="text-[10px] font-black text-poppik-pink bg-pink-50 px-3 py-1.5 rounded-full uppercase">{trend}</span>
     </div>
     <p className="text-3xl font-black text-slate-800 mb-1">{value}</p>
     <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">{label}</p>
@@ -741,13 +712,13 @@ const StatCard: React.FC<{icon: React.ReactNode, value: string, label: string, s
 );
 
 const SidebarNavItem: React.FC<{icon: React.ReactNode, label: string, screen: Screen, current: Screen, onClick: (s: Screen) => void}> = ({icon, label, screen, current, onClick}) => (
-   <button onClick={() => onClick(screen)} className={`w-full flex items-center space-x-4 p-4 rounded-2xl transition-all font-bold ${current === screen ? 'bg-poppik-green text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+   <button onClick={() => onClick(screen)} className={`w-full flex items-center space-x-4 p-4 rounded-2xl transition-all font-bold ${current === screen ? 'bg-poppik-pink text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
       {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' } as any)}<span className="text-base">{label}</span>
    </button>
 );
 
 const BottomNavItem: React.FC<{icon: React.ReactNode, label: string, screen: Screen, currentScreen: Screen, setCurrentScreen: (s: Screen) => void}> = ({icon, label, screen, currentScreen, setCurrentScreen}) => (
-  <button onClick={() => setCurrentScreen(screen)} className={`flex flex-col items-center space-y-1 transition-all flex-1 py-2 rounded-2xl ${currentScreen === screen ? 'text-poppik-green' : 'text-slate-400'}`}>
+  <button onClick={() => setCurrentScreen(screen)} className={`flex flex-col items-center space-y-1 transition-all flex-1 py-2 rounded-2xl ${currentScreen === screen ? 'text-poppik-pink' : 'text-slate-400'}`}>
     {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6' } as any)}<span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
   </button>
 );
@@ -764,7 +735,7 @@ const NotificationsView: React.FC<{ notifications: Notification[], markAllRead: 
           onClick={markAllRead}
           className="w-full md:w-auto px-6 py-3 bg-white border border-slate-200 rounded-xl md:rounded-2xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center space-x-2 shadow-sm"
         >
-          <CheckCheck className="w-4 h-4 text-poppik-green" />
+          <CheckCheck className="w-4 h-4 text-poppik-pink" />
           <span>Mark All as Read</span>
         </button>
       </div>
@@ -777,7 +748,7 @@ const NotificationsView: React.FC<{ notifications: Notification[], markAllRead: 
                 <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
                   n.type === 'order' ? 'bg-orange-100 text-orange-600' :
                   n.type === 'attendance' ? 'bg-blue-100 text-blue-600' :
-                  'bg-green-100 text-poppik-green'
+                  'bg-pink-100 text-poppik-pink'
                 }`}>
                   {n.type === 'order' ? <ShoppingCart className="w-5 h-5 md:w-7 h-7" /> :
                    n.type === 'attendance' ? <Clock className="w-5 h-5 md:w-7 h-7" /> :
@@ -816,7 +787,7 @@ const NotificationsView: React.FC<{ notifications: Notification[], markAllRead: 
 };
 
 const DashboardCard: React.FC<{icon: React.ReactNode, title: string, onClick: () => void, color: string}> = ({icon, title, onClick, color}) => (
-  <div onClick={onClick} className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-2xl hover:border-poppik-green transition-all group">
+  <div onClick={onClick} className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-2xl hover:border-poppik-pink transition-all group">
     <div className={`p-4 md:p-5 bg-slate-50 rounded-2xl md:rounded-3xl mb-3 md:mb-4 group-hover:scale-110 transition-transform ${color}`}>{React.cloneElement(icon as React.ReactElement, { size: 28 } as any)}</div>
     <h3 className="text-sm md:text-lg font-black text-slate-800">{title}</h3>
   </div>
@@ -914,6 +885,11 @@ const PoppikSFA: React.FC = () => {
   const [loginForm, setLoginForm] = useState({ phone: '8888888888', password: 'sales123', name: '', role: 'sales' });
   const [outletForm, setOutletForm] = useState({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '' });
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [visitFlowStep, setVisitFlowStep] = useState<'list' | 'visitForm'>('list');
+  const [visitNotes, setVisitNotes] = useState('');
+  const [visitRemark, setVisitRemark] = useState('');
+  const [visitImage, setVisitImage] = useState<File | null>(null);
   const [lastKnownLocation, setLastKnownLocation] = useState<{lat: number, lng: number} | null>(null);
   
   // Offline / PWA States
@@ -1165,24 +1141,48 @@ const PoppikSFA: React.FC = () => {
     }
 
     try {
-      await api.post('/visits', {
+      console.log("[VISIT] Submitting visit with data:", {
         outletId: activeOutlet.id,
         type,
-        reason: reason || (visitReason === 'Other' ? otherReason : visitReason),
-        latitude,
-        longitude
+        notes: visitNotes,
+        remark: visitRemark,
+        hasImage: !!visitImage
       });
+
+      const formData = new FormData();
+      formData.append('outletId', activeOutlet.id.toString());
+      formData.append('type', type);
+      // If reason is not provided, use visitRemark as a fallback for the reason field
+      formData.append('reason', reason || visitRemark || (visitReason === 'Other' ? otherReason : visitReason) || 'Visit');
+      formData.append('notes', visitNotes || '');
+      formData.append('remark', visitRemark || '');
+      if (latitude) formData.append('latitude', latitude.toString());
+      if (longitude) formData.append('longitude', longitude.toString());
+      if (visitImage) formData.append('photo', visitImage);
+
+      const response = await api.post('/visits', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      console.log("[VISIT] Server Response:", response.data);
       
       if (type === 'NO_ORDER') {
-        alert("Visit recorded successfully!");
+        alert("Visit recorded successfully! (Server OK)");
         setCurrentScreen('dashboard');
         setVisitReason('');
         setOtherReason('');
+        setVisitFlowStep('list');
+        setVisitNotes('');
+        setVisitRemark('');
+        setVisitImage(null);
         fetchReports(); // Refresh stats
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Visit submission failed", err);
-      if (type === 'NO_ORDER') alert("Failed to record visit");
+      const errMsg = err.response?.data?.message || err.message;
+      if (type === 'NO_ORDER') alert(`Failed to record visit: ${errMsg}`);
     } finally {
       setIsSubmittingVisit(false);
     }
@@ -1423,6 +1423,10 @@ const PoppikSFA: React.FC = () => {
 
       alert("Order Placed Successfully! Generating Invoice...");
       setCart({});
+      setVisitFlowStep('list');
+      setVisitNotes('');
+      setVisitRemark('');
+      setVisitImage(null);
       fetchOrders();
       fetchReports();
       setCurrentScreen('dashboard');
@@ -2051,7 +2055,7 @@ const PoppikSFA: React.FC = () => {
                     type="text" 
                     value={loginForm.name}
                     onChange={e => setLoginForm({...loginForm, name: e.target.value})}
-                    className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
+                    className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white outline-none transition-all font-bold" 
                     placeholder="Enter full name"
                   />
                 </div>
@@ -2062,19 +2066,28 @@ const PoppikSFA: React.FC = () => {
                    type="text" 
                    value={loginForm.phone}
                    onChange={e => setLoginForm({...loginForm, phone: e.target.value})}
-                   className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
+                   className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white outline-none transition-all font-bold" 
                    placeholder="Enter phone"
                  />
               </div>
               <div>
                  <label className="block text-[10px] md:text-xs font-black text-slate-400 uppercase mb-2">Password</label>
-                 <input 
-                   type="password" 
-                   value={loginForm.password}
-                   onChange={e => setLoginForm({...loginForm, password: e.target.value})}
-                   className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold" 
-                   placeholder="••••••••"
-                 />
+                 <div className="relative">
+                   <input 
+                     type={showPassword ? "text" : "password"} 
+                     value={loginForm.password}
+                     onChange={e => setLoginForm({...loginForm, password: e.target.value})}
+                     className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white outline-none transition-all font-bold pr-12" 
+                     placeholder="••••••••"
+                   />
+                   <button 
+                     type="button"
+                     onClick={() => setShowPassword(!showPassword)}
+                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                   >
+                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                   </button>
+                 </div>
               </div>
               {isRegistering && (
                 <div>
@@ -2082,19 +2095,19 @@ const PoppikSFA: React.FC = () => {
                    <select 
                      value={loginForm.role}
                      onChange={e => setLoginForm({...loginForm, role: e.target.value})}
-                     className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white outline-none transition-all font-bold appearance-none"
+                     className="w-full p-3.5 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white outline-none transition-all font-bold appearance-none"
                    >
                      <option value="sales">Sales Associate</option>
                      <option value="admin">Admin Manager</option>
                    </select>
                 </div>
               )}
-              <button type="submit" className="w-full py-4 md:py-5 bg-poppik-green text-white font-black rounded-2xl shadow-xl shadow-green-900/20 hover:scale-[1.02] active:scale-95 transition-all">
+              <button type="submit" className="w-full py-4 md:py-5 bg-poppik-pink text-white font-black rounded-2xl shadow-xl shadow-pink-900/20 hover:scale-[1.02] active:scale-95 transition-all">
                  {isRegistering ? 'Register Now' : 'Login to Account'}
               </button>
            </form>
            <div className="mt-8 text-center">
-              <button onClick={() => setIsRegistering(!isRegistering)} className="text-poppik-green font-bold text-xs md:text-sm hover:underline">
+              <button onClick={() => setIsRegistering(!isRegistering)} className="text-poppik-pink font-bold text-xs md:text-sm hover:underline">
                  {isRegistering ? 'Already have an account? Login' : 'Need an account? Register here'}
               </button>
            </div>
@@ -2137,9 +2150,9 @@ const PoppikSFA: React.FC = () => {
                    
                    <div className="pt-6 pb-2 px-4"><p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Sales Operations</p></div>
                    
-                   <SidebarNavItem icon={<Clock />} label="Attendance" screen="attendance" current={currentScreen} onClick={setCurrentScreen} />
+                   <SidebarNavItem icon={<Clock />} label="Visit" screen="attendance" current={currentScreen} onClick={setCurrentScreen} />
                    <SidebarNavItem icon={<ShoppingCart />} label="Create Order" screen="createOrder" current={currentScreen} onClick={setCurrentScreen} />
-                   <SidebarNavItem icon={<User />} label="Add Client" screen="addClient" current={currentScreen} onClick={setCurrentScreen} />
+                   <SidebarNavItem icon={<User />} label="Our Clients" screen="addClient" current={currentScreen} onClick={setCurrentScreen} />
                    <SidebarNavItem icon={<BarChart3 />} label="Reports" screen="reports" current={currentScreen} onClick={setCurrentScreen} />
                    
                    <div className="pt-6 pb-2 px-4"><p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Personal</p></div>
@@ -2166,9 +2179,17 @@ const PoppikSFA: React.FC = () => {
             {currentScreen === 'dashboard' && (
                <ScreenWrapper title="Dashboard" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                  <div className="space-y-6 md:space-y-8">
-                  <div className="bg-gradient-to-r from-poppik-green to-emerald-800 rounded-2xl md:rounded-3xl p-6 md:p-8 text-white shadow-xl shadow-green-900/20 relative overflow-hidden">
+                  <div className="bg-gradient-to-r from-poppik-pink to-pink-800 rounded-2xl md:rounded-3xl p-6 md:p-8 text-white shadow-xl shadow-pink-900/20 relative overflow-hidden">
                     <div className="relative z-10">
-                        <h2 className="text-base md:text-lg opacity-80 mb-1">Good morning,</h2>
+                        <div className="flex items-center justify-between mb-1">
+                          <h2 className="text-base md:text-lg opacity-80">Good morning,</h2>
+                          <button 
+                            onClick={() => setCurrentScreen('reports')}
+                            className="px-4 py-2 bg-white/20 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-white/30 transition-colors"
+                          >
+                            Performance
+                          </button>
+                        </div>
                         <h1 className="text-2xl md:text-3xl font-black mb-6">{user?.name || 'Valued User'}</h1>
                         <div className="flex flex-col sm:flex-row gap-4">
                           <button 
@@ -2176,7 +2197,7 @@ const PoppikSFA: React.FC = () => {
                             className={`px-6 md:px-8 py-3.5 md:py-4 rounded-xl md:rounded-2xl font-bold text-base md:text-lg transition-all flex items-center justify-center space-x-3 shadow-lg ${
                               isPunchedIn 
                               ? 'bg-red-500/20 text-white border border-red-500/30 backdrop-blur-sm hover:bg-red-500/30' 
-                              : 'bg-white text-poppik-green hover:scale-[1.02]'
+                              : 'bg-white text-poppik-pink hover:scale-[1.02]'
                             }`}
                           >
                             <Clock className="w-5 h-5 md:w-6 md:h-6" />
@@ -2189,19 +2210,19 @@ const PoppikSFA: React.FC = () => {
 
                   {/* 4-Card Dashboard for Salesman */}
                   <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    <DashboardCard icon={<Clock />} title="Attendance" onClick={() => setCurrentScreen('attendance')} color="text-blue-600" />
+                    <DashboardCard icon={<Clock />} title="Visit" onClick={() => setCurrentScreen('attendance')} color="text-blue-600" />
                     <DashboardCard icon={<ShoppingCart />} title="Create Order" onClick={() => setCurrentScreen('createOrder')} color="text-orange-600" />
-                    <DashboardCard icon={<User />} title="Add Client" onClick={() => setCurrentScreen('addClient')} color="text-poppik-gold" />
+                    <DashboardCard icon={<User />} title="Our Clients" onClick={() => setCurrentScreen('addClient')} color="text-poppik-gold" />
                     <DashboardCard icon={<BarChart3 />} title="Reports" onClick={() => setCurrentScreen('reports')} color="text-purple-600" />
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                     <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm">
-                        <h3 className="text-lg md:text-xl font-bold mb-6 flex items-center"><Target className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Quick Actions</h3>
+                        <h3 className="text-lg md:text-xl font-bold mb-6 flex items-center"><Target className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> Quick Actions</h3>
                         <div className="grid grid-cols-1 gap-4">
                           <button onClick={() => setCurrentScreen('createOrder')} className="flex items-center justify-between p-4 md:p-5 bg-slate-50 rounded-xl md:rounded-2xl hover:bg-poppik-beige transition-all group border border-slate-100 hover:border-poppik-gold/30">
                               <div className="flex items-center space-x-4">
-                                <div className="bg-white p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm"><Store className="w-5 h-5 md:w-6 md:h-6 text-poppik-green" /></div>
+                                <div className="bg-white p-2 md:p-3 rounded-lg md:rounded-xl shadow-sm"><Store className="w-5 h-5 md:w-6 md:h-6 text-poppik-pink" /></div>
                                 <div className="text-left"><p className="font-bold text-sm md:text-base text-slate-800">Start Field Visit</p><p className="text-xs md:text-sm text-slate-500">Check-in to shops & take orders</p></div>
                               </div>
                               <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-slate-400 group-hover:translate-x-1 transition-all" />
@@ -2215,13 +2236,13 @@ const PoppikSFA: React.FC = () => {
                              <div 
                                key={o.id} 
                                onClick={() => setViewingOrder(o)}
-                               className="flex items-center justify-between p-3 bg-slate-50 rounded-lg md:rounded-xl border border-slate-100 hover:border-poppik-green cursor-pointer transition-all group"
+                               className="flex items-center justify-between p-3 bg-slate-50 rounded-lg md:rounded-xl border border-slate-100 hover:border-poppik-pink cursor-pointer transition-all group"
                              >
                                 <div>
-                                  <p className="font-bold text-sm md:text-base text-slate-800 group-hover:text-poppik-green transition-colors">{o.outlet.name}</p>
+                                  <p className="font-bold text-sm md:text-base text-slate-800 group-hover:text-poppik-pink transition-colors">{o.outlet.name}</p>
                                   <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase">{new Date(o.createdAt).toLocaleDateString()} • {(o.orderItems?.length || o.items?.length || 0)} Products</p>
                                 </div>
-                                <p className="font-black text-sm md:text-base text-poppik-green">₹{o.totalAmount.toLocaleString()}</p>
+                                <p className="font-black text-sm md:text-base text-poppik-pink">₹{o.totalAmount.toLocaleString()}</p>
                              </div>
                            ))}
                            {orders.length === 0 && <p className="text-slate-400 text-xs md:text-sm italic text-center py-4">No orders placed yet</p>}
@@ -2229,80 +2250,7 @@ const PoppikSFA: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Order Detail Modal */}
-                  {viewingVisit && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-              <div>
-                <h3 className="text-2xl font-black text-slate-800">Visit Details</h3>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Visit Log • {new Date(viewingVisit.timestamp).toLocaleString()}</p>
-              </div>
-              <button onClick={() => setViewingVisit(null)} className="p-3 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-2xl transition-all"><X size={24} /></button>
-            </div>
-            
-            <div className="p-8 space-y-8">
-              {/* Outlet Info */}
-              <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Outlet Information</h4>
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                    <Store className="w-6 h-6 text-poppik-green" />
-                  </div>
-                  <div>
-                    <p className="font-black text-lg text-slate-800">{viewingVisit.outlet?.name}</p>
-                    <p className="text-sm text-slate-500 font-medium leading-relaxed">{viewingVisit.outlet?.area}, {viewingVisit.outlet?.city}</p>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1 italic">{viewingVisit.outlet?.address}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Visit Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 bg-white border border-slate-100 rounded-2xl">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Visit Type</p>
-                  <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${viewingVisit.type === 'ORDER' ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
-                    {viewingVisit.type === 'ORDER' ? 'Order Placed' : 'No Order'}
-                  </span>
-                </div>
-                <div className="p-5 bg-white border border-slate-100 rounded-2xl">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">GPS Status</p>
-                  {viewingVisit.latitude ? (
-                    <div className="flex items-center text-blue-500 font-black text-[10px] uppercase">
-                      <MapPin className="w-3 h-3 mr-1" /> Logged
-                    </div>
-                  ) : (
-                    <div className="flex items-center text-slate-400 font-black text-[10px] uppercase">
-                      <X className="w-3 h-3 mr-1" /> No GPS
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {viewingVisit.reason && (
-                <div className="p-6 bg-orange-50/30 border border-orange-100/50 rounded-2xl">
-                  <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-2">Reason / Comment</p>
-                  <p className="font-bold text-slate-700 leading-relaxed">{viewingVisit.reason}</p>
-                </div>
-              )}
-
-              {viewingVisit.latitude && (
-                <a 
-                  href={`https://www.google.com/maps?q=${viewingVisit.latitude},${viewingVisit.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center space-x-2"
-                >
-                  <Navigation size={20} />
-                  <span>View on Google Maps</span>
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {viewingOrder && (
+                  {viewingOrder && (
                     <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
                       <div className="bg-white w-full max-w-2xl rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                         <div className="p-5 md:p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 shrink-0">
@@ -2319,7 +2267,7 @@ const PoppikSFA: React.FC = () => {
                             <h4 className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Customer Information</h4>
                             <div className="flex items-start space-x-4">
                               <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                                <Store className="w-5 h-5 md:w-6 md:h-6 text-poppik-green" />
+                                <Store className="w-5 h-5 md:w-6 md:h-6 text-poppik-pink" />
                               </div>
                               <div>
                                 <p className="font-black text-base md:text-lg text-slate-800">{viewingOrder.outlet.name}</p>
@@ -2336,7 +2284,7 @@ const PoppikSFA: React.FC = () => {
                             {viewingOrder.orderItems?.map((item, idx) => (
                               <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl">
                                 <div className="flex items-center space-x-4">
-                                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center font-black text-poppik-green text-xs">
+                                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center font-black text-poppik-pink text-xs">
                                     {idx + 1}
                                   </div>
                                   <div>
@@ -2346,7 +2294,7 @@ const PoppikSFA: React.FC = () => {
                                 </div>
                                 <div className="text-right">
                                   <p className="font-black text-slate-800">₹{item.priceAtTime} × {item.quantity}</p>
-                                  <p className="text-xs font-black text-poppik-green mt-0.5">₹{(item.priceAtTime * item.quantity).toLocaleString()}</p>
+                                  <p className="text-xs font-black text-poppik-pink mt-0.5">₹{(item.priceAtTime * item.quantity).toLocaleString()}</p>
                                 </div>
                               </div>
                             ))}
@@ -2356,7 +2304,7 @@ const PoppikSFA: React.FC = () => {
                           <div className="mt-8 pt-8 border-t border-slate-100">
                             <div className="flex justify-between items-center">
                               <p className="text-lg font-bold text-slate-500">Grand Total</p>
-                              <p className="text-3xl font-black text-poppik-green">₹{viewingOrder.totalAmount.toLocaleString()}</p>
+                              <p className="text-3xl font-black text-poppik-pink">₹{viewingOrder.totalAmount.toLocaleString()}</p>
                             </div>
                           </div>
                         </div>
@@ -2364,7 +2312,7 @@ const PoppikSFA: React.FC = () => {
                         <div className="p-5 md:p-8 bg-slate-50/50 border-t border-slate-50 flex flex-col sm:flex-row gap-3 md:gap-4 shrink-0">
                           <button 
                             onClick={() => { shareOnWhatsApp(viewingOrder); setViewingOrder(null); }}
-                            className="flex-1 py-3 md:py-4 bg-green-500 text-white font-black rounded-xl md:rounded-2xl shadow-lg shadow-green-900/20 hover:bg-green-600 transition-all flex items-center justify-center space-x-2 text-sm md:text-base"
+                            className="flex-1 py-3 md:py-4 bg-pink-500 text-white font-black rounded-xl md:rounded-2xl shadow-lg shadow-pink-900/20 hover:bg-pink-600 transition-all flex items-center justify-center space-x-2 text-sm md:text-base"
                           >
                             <MessageCircle size={18} className="md:w-5 md:h-5" />
                             <span>Share on WhatsApp</span>
@@ -2395,8 +2343,8 @@ const PoppikSFA: React.FC = () => {
                 <div className="max-w-3xl mx-auto px-4 md:px-0 space-y-6 md:space-y-8">
                   {/* Form Header */}
                   <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm flex items-center space-x-4 md:space-x-6">
-                    <div className="w-12 h-12 md:w-16 md:h-16 bg-poppik-green/10 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
-                      <Plus className="w-6 h-6 md:w-8 md:h-8 text-poppik-green" />
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-poppik-pink/10 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+                      <Plus className="w-6 h-6 md:w-8 md:h-8 text-poppik-pink" />
                     </div>
                     <div>
                       <h3 className="text-xl md:text-2xl font-black text-slate-800">Outlet Registration</h3>
@@ -2409,7 +2357,7 @@ const PoppikSFA: React.FC = () => {
                     <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm">
                       <div className="flex items-center space-x-3 mb-6 md:mb-8">
                         <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-poppik-green" />
+                          <Building2 className="w-5 h-5 text-poppik-pink" />
                         </div>
                         <h4 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-wider">Shop Details</h4>
                       </div>
@@ -2423,7 +2371,7 @@ const PoppikSFA: React.FC = () => {
                               type="text" 
                               value={outletForm.name} 
                               onChange={e => setOutletForm({...outletForm, name: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold" 
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
                               placeholder="e.g. Modern Cosmetics" 
                               required 
                             />
@@ -2437,7 +2385,7 @@ const PoppikSFA: React.FC = () => {
                               type="text" 
                               value={outletForm.beat_name} 
                               onChange={e => setOutletForm({...outletForm, beat_name: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold" 
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
                               placeholder="e.g. North Jaipur Route" 
                             />
                           </div>
@@ -2450,7 +2398,7 @@ const PoppikSFA: React.FC = () => {
                               type="text" 
                               value={outletForm.gstNumber} 
                               onChange={e => setOutletForm({...outletForm, gstNumber: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold" 
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
                               placeholder="15-digit GSTIN" 
                             />
                           </div>
@@ -2462,7 +2410,7 @@ const PoppikSFA: React.FC = () => {
                             <select 
                               value={outletForm.class} 
                               onChange={e => setOutletForm({...outletForm, class: e.target.value})} 
-                              className="w-full pl-12 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold appearance-none relative"
+                              className="w-full pl-12 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold appearance-none relative"
                             >
                                <option value="A_PLUS">A+ (Premium)</option>
                                <option value="A">A (High Potential)</option>
@@ -2495,7 +2443,7 @@ const PoppikSFA: React.FC = () => {
                               type="text" 
                               value={outletForm.owner_name} 
                               onChange={e => setOutletForm({...outletForm, owner_name: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold" 
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
                               placeholder="Full Name" 
                             />
                           </div>
@@ -2508,7 +2456,7 @@ const PoppikSFA: React.FC = () => {
                               type="text" 
                               value={outletForm.owner_no} 
                               onChange={e => setOutletForm({...outletForm, owner_no: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold" 
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
                               placeholder="10-digit mobile" 
                             />
                           </div>
@@ -2534,7 +2482,7 @@ const PoppikSFA: React.FC = () => {
                               type="text" 
                               value={outletForm.area} 
                               onChange={e => setOutletForm({...outletForm, area: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold" 
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
                               placeholder="Locality" 
                             />
                           </div>
@@ -2547,7 +2495,7 @@ const PoppikSFA: React.FC = () => {
                               type="text" 
                               value={outletForm.city} 
                               onChange={e => setOutletForm({...outletForm, city: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold" 
+                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
                               placeholder="e.g. Jaipur" 
                             />
                           </div>
@@ -2560,7 +2508,7 @@ const PoppikSFA: React.FC = () => {
                           <textarea 
                             value={outletForm.address} 
                             onChange={e => setOutletForm({...outletForm, address: e.target.value})} 
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 focus:bg-white focus:border-poppik-green outline-none transition-all font-bold h-32 resize-none" 
+                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold h-32 resize-none" 
                             placeholder="Complete shop address..." 
                             required
                           ></textarea>
@@ -2570,7 +2518,7 @@ const PoppikSFA: React.FC = () => {
 
                     <button 
                       type="submit" 
-                      className="w-full py-5 md:py-6 bg-poppik-green text-white text-lg md:text-xl font-black rounded-2xl md:rounded-3xl shadow-2xl shadow-green-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-3"
+                      className="w-full py-5 md:py-6 bg-poppik-pink text-white text-lg md:text-xl font-black rounded-2xl md:rounded-3xl shadow-2xl shadow-pink-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-3"
                     >
                       <CloudUpload className="w-6 h-6" />
                       <span>Register & Add Client</span>
@@ -2590,7 +2538,7 @@ const PoppikSFA: React.FC = () => {
                       placeholder="Search by outlet name or area..." 
                       value={searchQuery} 
                       onChange={(e) => setSearchQuery(e.target.value)} 
-                      className="w-full pl-14 pr-6 py-5 text-lg bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-poppik-green/10 shadow-sm transition-all" 
+                      className="w-full pl-14 pr-6 py-5 text-lg bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-poppik-pink/10 shadow-sm transition-all" 
                     />
                     
                     {/* Search Results Dropdown */}
@@ -2607,11 +2555,11 @@ const PoppikSFA: React.FC = () => {
                                   className="w-full text-left p-6 hover:bg-slate-50 border-b border-slate-50 last:border-0 flex items-center justify-between group transition-colors"
                                 >
                                   <div className="flex items-center space-x-4">
-                                    <div className="p-3 bg-slate-100 rounded-xl text-slate-600 group-hover:bg-poppik-green group-hover:text-white transition-colors">
+                                    <div className="p-3 bg-slate-100 rounded-xl text-slate-600 group-hover:bg-poppik-pink group-hover:text-white transition-colors">
                                       <Store className="w-5 h-5" />
                                     </div>
                                     <div>
-                                      <p className="font-bold text-slate-800 group-hover:text-poppik-green transition-colors">{outlet.name}</p>
+                                      <p className="font-bold text-slate-800 group-hover:text-poppik-pink transition-colors">{outlet.name}</p>
                                       <p className="text-xs text-slate-500 font-medium">{outlet.area}, {outlet.city}</p>
                                     </div>
                                   </div>
@@ -2622,7 +2570,7 @@ const PoppikSFA: React.FC = () => {
                             {/* Option to add even if results exist */}
                             <button 
                               onClick={() => { setCurrentScreen('addClient'); setSearchQuery(''); }}
-                              className="w-full p-6 bg-slate-50 hover:bg-poppik-beige flex items-center justify-center space-x-2 text-poppik-green font-bold border-t border-slate-100 transition-colors"
+                              className="w-full p-6 bg-slate-50 hover:bg-poppik-beige flex items-center justify-center space-x-2 text-poppik-pink font-bold border-t border-slate-100 transition-colors"
                             >
                               <Plus className="w-5 h-5" />
                               <span>Don't see the client? Add New Client</span>
@@ -2637,7 +2585,7 @@ const PoppikSFA: React.FC = () => {
                             <p className="text-slate-500 mb-8 max-w-xs mx-auto font-medium">We couldn't find any outlet matching "{searchQuery}". Would you like to add it?</p>
                             <button 
                               onClick={() => { setCurrentScreen('addClient'); setSearchQuery(''); }} 
-                              className="px-10 py-4 bg-poppik-green text-white font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-green-900/20 flex items-center justify-center space-x-2 mx-auto"
+                              className="px-10 py-4 bg-poppik-pink text-white font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-pink-900/20 flex items-center justify-center space-x-2 mx-auto"
                             >
                               <Plus className="w-5 h-5" />
                               <span>Register New Client</span>
@@ -2650,17 +2598,17 @@ const PoppikSFA: React.FC = () => {
                   
                   <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                     {outlets.filter(o => (o.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || (o.area?.toLowerCase() || '').includes(searchQuery.toLowerCase())).map(outlet => (
-                      <div key={outlet.id} className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm hover:border-poppik-green hover:shadow-xl transition-all group flex flex-col h-full">
+                      <div key={outlet.id} className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm hover:border-poppik-pink hover:shadow-xl transition-all group flex flex-col h-full">
                         <div className="mb-4 md:mb-8 flex-1">
                           <div className="flex items-center justify-between mb-3 md:mb-4">
-                              <div className="bg-slate-50 p-2 md:p-3 rounded-xl md:rounded-2xl text-poppik-green group-hover:bg-poppik-green group-hover:text-white transition-colors">
+                              <div className="bg-slate-50 p-2 md:p-3 rounded-xl md:rounded-2xl text-poppik-pink group-hover:bg-poppik-pink group-hover:text-white transition-colors">
                                 <Store className="w-4 h-4 md:w-6 md:h-6" />
                               </div>
                               <span className="text-[8px] md:text-xs font-black text-poppik-gold bg-poppik-gold/10 px-2 py-1 md:px-3 md:py-1.5 rounded-full uppercase">
                                 {outlet.class?.replace('_', '+')}
                               </span>
                           </div>
-                          <h3 className="text-sm md:text-xl font-black text-slate-800 mb-2 md:mb-4 group-hover:text-poppik-green transition-colors line-clamp-2">
+                          <h3 className="text-sm md:text-xl font-black text-slate-800 mb-2 md:mb-4 group-hover:text-poppik-pink transition-colors line-clamp-2">
                             {outlet.name}
                           </h3>
                           <p className="text-[10px] md:text-sm text-slate-500 flex items-center mb-1 md:mb-2">
@@ -2674,7 +2622,7 @@ const PoppikSFA: React.FC = () => {
                         </div>
                         <button 
                           onClick={() => { setActiveOutlet(outlet); setCurrentScreen('outletAction'); }}
-                          className="w-full py-2.5 md:py-4 bg-slate-900 text-white text-xs md:text-base font-bold rounded-xl md:rounded-2xl hover:bg-poppik-green transition-all transform active:scale-95 flex items-center justify-center space-x-1 md:space-x-2 shadow-lg shadow-black/10"
+                          className="w-full py-2.5 md:py-4 bg-slate-900 text-white text-xs md:text-base font-bold rounded-xl md:rounded-2xl hover:bg-poppik-pink transition-all transform active:scale-95 flex items-center justify-center space-x-1 md:space-x-2 shadow-lg shadow-black/10"
                         >
                           <span className="whitespace-nowrap">Create Order</span><ChevronRight className="w-3 h-3 md:w-5 md:h-5" />
                         </button>
@@ -2694,7 +2642,7 @@ const PoppikSFA: React.FC = () => {
                       </p>
                       <button 
                         onClick={() => setCurrentScreen('addClient')} 
-                        className="px-8 py-4 md:px-12 md:py-5 bg-poppik-green text-white text-base md:text-lg font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-green-900/20 flex items-center justify-center space-x-3"
+                        className="px-8 py-4 md:px-12 md:py-5 bg-poppik-pink text-white text-base md:text-lg font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-pink-900/20 flex items-center justify-center space-x-3"
                       >
                         <Plus className="w-6 h-6" />
                         <span>Register Your First Client</span>
@@ -2725,7 +2673,7 @@ const PoppikSFA: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <button 
                         onClick={() => setCurrentScreen('productCatalog')}
-                        className="p-10 bg-slate-900 text-white rounded-[32px] hover:bg-poppik-green transition-all group shadow-xl hover:shadow-green-900/20 active:scale-95 flex flex-col items-center text-center"
+                        className="p-10 bg-slate-900 text-white rounded-[32px] hover:bg-poppik-pink transition-all group shadow-xl hover:shadow-pink-900/20 active:scale-95 flex flex-col items-center text-center"
                       >
                         <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                           <Plus className="w-10 h-10" />
@@ -2803,7 +2751,7 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'productCatalog' && (
-              <ScreenWrapper title="Product Catalog" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+              <ScreenWrapper title="Visit" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                 <div className="space-y-8 pb-32">
                   {/* Header Info */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
@@ -2822,7 +2770,7 @@ const PoppikSFA: React.FC = () => {
                         <div className="h-10 w-[1px] bg-slate-100"></div>
                         <div className="text-right">
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Value</p>
-                          <p className="text-2xl font-black text-poppik-green">₹{totalAmount.toLocaleString()}</p>
+                          <p className="text-2xl font-black text-poppik-pink">₹{totalAmount.toLocaleString()}</p>
                         </div>
                     </div>
                   </div>
@@ -2832,10 +2780,10 @@ const PoppikSFA: React.FC = () => {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6" />
                     <input 
                       type="text" 
-                      placeholder="Search items by name or category..." 
+                      placeholder="Search Product..." 
                       value={productSearchQuery} 
                       onChange={(e) => setProductSearchQuery(e.target.value)} 
-                      className="w-full pl-14 pr-6 py-5 text-lg bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-poppik-green/10 shadow-sm transition-all" 
+                      className="w-full pl-14 pr-6 py-5 text-lg bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-poppik-pink/10 shadow-sm transition-all" 
                     />
                   </div>
 
@@ -2870,7 +2818,7 @@ const PoppikSFA: React.FC = () => {
                               {/* Desktop row (original order) */}
                               <tr key={`d-${product.id}`} className="hover:bg-slate-50/50 transition-colors group hidden md:table-row">
                                 <td className="px-8 py-6">
-                                  <p className="font-bold text-slate-800 text-lg group-hover:text-poppik-green transition-colors">{product.name}</p>
+                                  <p className="font-bold text-slate-800 text-lg group-hover:text-poppik-pink transition-colors">{product.name}</p>
                                   <p className="text-xs text-slate-400 font-medium">SKU: POP-{product.id.toString().padStart(4, '0')}</p>
                                 </td>
                                 <td className="px-8 py-6 text-center">
@@ -2894,7 +2842,7 @@ const PoppikSFA: React.FC = () => {
                                         <span className="font-black text-slate-800 w-10 text-center text-lg">{cart[product.id]}</span>
                                         <button 
                                           onClick={() => addToCart(product.id)} 
-                                          className="p-2 text-slate-600 hover:bg-green-50 hover:text-poppik-green rounded-xl transition-all"
+                                          className="p-2 text-slate-600 hover:bg-pink-50 hover:text-poppik-pink rounded-xl transition-all"
                                         >
                                           <Plus className="w-4 h-4" />
                                         </button>
@@ -2902,7 +2850,7 @@ const PoppikSFA: React.FC = () => {
                                     ) : (
                                       <button 
                                         onClick={() => addToCart(product.id)} 
-                                        className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-poppik-green transition-all shadow-md text-sm flex items-center space-x-2"
+                                        className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-poppik-pink transition-all shadow-md text-sm flex items-center space-x-2"
                                       >
                                         <Plus className="w-4 h-4" />
                                         <span>Add</span>
@@ -2914,7 +2862,7 @@ const PoppikSFA: React.FC = () => {
                               {/* Mobile row (reordered: Quantity, Category, Price) */}
                               <tr key={`m-${product.id}`} className="hover:bg-slate-50/50 transition-colors group md:hidden table-row">
                                 <td className="px-4 py-6">
-                                  <p className="font-semibold text-slate-800 text-base group-hover:text-poppik-green transition-colors leading-tight">{product.name}</p>
+                                  <p className="font-semibold text-slate-800 text-base group-hover:text-poppik-pink transition-colors leading-tight">{product.name}</p>
                                   <p className="text-[10px] text-slate-400 font-medium">SKU: POP-{product.id.toString().padStart(4, '0')}</p>
                                 </td>
                                 <td className="px-4 py-6">
@@ -2930,7 +2878,7 @@ const PoppikSFA: React.FC = () => {
                                         <span className="font-black text-slate-800 w-8 text-center text-base">{cart[product.id]}</span>
                                         <button 
                                           onClick={() => addToCart(product.id)} 
-                                          className="p-2 text-slate-600 hover:bg-green-50 hover:text-poppik-green rounded-xl transition-all"
+                                          className="p-2 text-slate-600 hover:bg-pink-50 hover:text-poppik-pink rounded-xl transition-all"
                                         >
                                           <Plus className="w-3.5 h-3.5" />
                                         </button>
@@ -2938,7 +2886,7 @@ const PoppikSFA: React.FC = () => {
                                     ) : (
                                       <button 
                                         onClick={() => addToCart(product.id)} 
-                                        className="px-4 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-poppik-green transition-all shadow-md text-xs flex items-center space-x-2"
+                                        className="px-4 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-poppik-pink transition-all shadow-md text-xs flex items-center space-x-2"
                                       >
                                         <Plus className="w-3.5 h-3.5" />
                                         <span>Add</span>
@@ -2982,9 +2930,9 @@ const PoppikSFA: React.FC = () => {
                           className="w-full bg-poppik-black text-white p-4 md:p-6 rounded-2xl md:rounded-[32px] flex items-center justify-between shadow-2xl hover:scale-[1.02] transition-all border border-white/10 group"
                         >
                           <div className="flex items-center space-x-3 md:space-x-6">
-                              <div className="bg-white/10 p-2 md:p-3 rounded-xl md:rounded-2xl backdrop-blur-md relative group-hover:bg-poppik-green transition-colors">
+                              <div className="bg-white/10 p-2 md:p-3 rounded-xl md:rounded-2xl backdrop-blur-md relative group-hover:bg-poppik-pink transition-colors">
                                 <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
-                                <span className="absolute -top-1 -right-1 bg-poppik-green text-[9px] md:text-[10px] w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center border-2 border-poppik-black font-black">{cartCount}</span>
+                                <span className="absolute -top-1 -right-1 bg-poppik-pink text-[9px] md:text-[10px] w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center border-2 border-poppik-black font-black">{cartCount}</span>
                               </div>
                               <div className="text-left">
                                 <p className="text-[8px] md:text-[10px] font-bold uppercase opacity-60 tracking-widest mb-0.5">Review Billing</p>
@@ -2994,7 +2942,7 @@ const PoppikSFA: React.FC = () => {
                           <div className="flex items-center space-x-2 md:space-x-4">
                             <span className="font-bold text-sm md:text-lg">Continue</span>
                             <div className="p-1.5 md:p-2 bg-white/10 rounded-lg md:rounded-xl group-hover:translate-x-1 transition-transform">
-                              <ChevronRight className="w-4 h-4 md:w-6 md:h-6 text-poppik-green" />
+                              <ChevronRight className="w-4 h-4 md:w-6 md:h-6 text-poppik-pink" />
                             </div>
                           </div>
                         </button>
@@ -3020,7 +2968,7 @@ const PoppikSFA: React.FC = () => {
                       {products.filter(p => cart[p.id] > 0).map(product => (
                         <div key={product.id} className="flex items-center justify-between group p-4 hover:bg-slate-50 rounded-2xl transition-colors border border-transparent hover:border-slate-100">
                           <div className="flex items-center space-x-6">
-                            <div className="bg-slate-100 p-3 rounded-xl text-slate-400 group-hover:bg-poppik-green group-hover:text-white transition-colors">
+                            <div className="bg-slate-100 p-3 rounded-xl text-slate-400 group-hover:bg-poppik-pink group-hover:text-white transition-colors">
                               <ShoppingCart className="w-5 h-5" />
                             </div>
                             <div>
@@ -3040,7 +2988,7 @@ const PoppikSFA: React.FC = () => {
                             </div>
                             <div className="text-right min-w-[100px]">
                               <p className="text-xs text-slate-400 font-black uppercase mb-0.5">Total</p>
-                              <p className="text-xl font-black text-poppik-green">₹{(product.price * cart[product.id]).toLocaleString()}</p>
+                              <p className="text-xl font-black text-poppik-pink">₹{(product.price * cart[product.id]).toLocaleString()}</p>
                             </div>
                             <button onClick={() => setCart(prev => {const n={...prev}; delete n[product.id]; return n;})} className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
                               <X className="w-6 h-6" />
@@ -3052,12 +3000,12 @@ const PoppikSFA: React.FC = () => {
 
                     <div className="mt-12 pt-8 border-t border-slate-100 space-y-4">
                       <div className="flex justify-between text-slate-500 font-bold"><p>Subtotal</p><p>₹{totalAmount.toLocaleString()}</p></div>
-                      <div className="flex justify-between items-center pt-4"><p className="text-2xl font-black text-slate-800">Grand Total</p><p className="text-3xl font-black text-poppik-green">₹{totalAmount.toLocaleString()}</p></div>
+                      <div className="flex justify-between items-center pt-4"><p className="text-2xl font-black text-slate-800">Grand Total</p><p className="text-3xl font-black text-poppik-pink">₹{totalAmount.toLocaleString()}</p></div>
                     </div>
                   </div>
 
                   <div className="sticky bottom-6 mt-12 w-full max-w-4xl mx-auto z-50">
-                    <button onClick={submitOrder} className="w-full bg-poppik-green text-white p-6 rounded-[32px] flex items-center justify-between shadow-2xl hover:scale-[1.02] active:scale-95 transition-all border border-white/20">
+                    <button onClick={submitOrder} className="w-full bg-poppik-pink text-white p-6 rounded-[32px] flex items-center justify-between shadow-2xl hover:scale-[1.02] active:scale-95 transition-all border border-white/20">
                       <div className="flex items-center space-x-6">
                         <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md"><ShoppingCart className="w-6 h-6" /></div>
                         <div className="text-left"><p className="text-[10px] font-bold uppercase opacity-80">Confirm & Place</p><p className="text-2xl font-black tracking-tight">Final Order</p></div>
@@ -3075,14 +3023,14 @@ const PoppikSFA: React.FC = () => {
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                       <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center">
-                        <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> 
+                        <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> 
                         {reportPeriod === 'day' ? 'Daily' : reportPeriod === 'month' ? 'Monthly' : 'Yearly'} Summary
                       </h2>
                       <div className="relative">
                         <select 
                           value={reportPeriod}
                           onChange={(e) => setReportPeriod(e.target.value as any)}
-                          className="appearance-none pl-4 pr-10 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-4 focus:ring-poppik-green/10 cursor-pointer"
+                          className="appearance-none pl-4 pr-10 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-4 focus:ring-poppik-pink/10 cursor-pointer"
                         >
                           <option value="day">Today</option>
                           <option value="month">This Month</option>
@@ -3091,7 +3039,7 @@ const PoppikSFA: React.FC = () => {
                         <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
                       <div className="p-5 md:p-6 bg-blue-50 rounded-xl md:rounded-2xl border border-blue-100">
                          <p className="text-[9px] md:text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Total Attendance</p>
                          <p className="text-xl md:text-2xl font-black text-blue-800">{dayWiseReport?.totalAttendance || 0}</p>
@@ -3100,22 +3048,26 @@ const PoppikSFA: React.FC = () => {
                          <p className="text-[9px] md:text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Total Visits</p>
                          <p className="text-xl md:text-2xl font-black text-purple-800">{dayWiseReport?.totalVisits || 0}</p>
                       </div>
+                      <div className="p-5 md:p-6 bg-green-50 rounded-xl md:rounded-2xl border border-green-100">
+                         <p className="text-[9px] md:text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">Total Orders</p>
+                         <p className="text-xl md:text-2xl font-black text-green-800">{dayWiseReport?.totalOrders || 0}</p>
+                      </div>
                       <div className="p-5 md:p-6 bg-orange-50 rounded-xl md:rounded-2xl border border-orange-100">
                          <p className="text-[9px] md:text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Strike Rate</p>
                          <p className="text-xl md:text-2xl font-black text-orange-800">{dayWiseReport?.strikeRate || 0}%</p>
                       </div>
-                      <div className="p-5 md:p-6 bg-green-50 rounded-xl md:rounded-2xl border border-green-100">
-                         <p className="text-[9px] md:text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">Total Sales Value</p>
-                         <p className="text-xl md:text-2xl font-black text-green-800">₹{(dayWiseReport?.totalSalesValue || 0).toLocaleString()}</p>
+                      <div className="p-5 md:p-6 bg-pink-50 rounded-xl md:rounded-2xl border border-pink-100 col-span-2 md:col-span-1 lg:col-span-2">
+                         <p className="text-[9px] md:text-[10px] font-black text-pink-400 uppercase tracking-widest mb-1">Total Sales Value</p>
+                         <p className="text-xl md:text-2xl font-black text-pink-800">₹{(dayWiseReport?.totalSalesValue || 0).toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Store className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Party-wise History</h2>
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Store className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> Party-wise History</h2>
                       <button 
                         onClick={downloadPartyWiseReport}
-                        className="p-2 md:p-3 bg-poppik-green text-white rounded-xl hover:bg-green-600 transition-all shadow-md flex items-center shrink-0"
+                        className="p-2 md:p-3 bg-poppik-pink text-white rounded-xl hover:bg-pink-600 transition-all shadow-md flex items-center shrink-0"
                         title="Download Report"
                       >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
@@ -3127,7 +3079,7 @@ const PoppikSFA: React.FC = () => {
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div><h3 className="font-black text-slate-800 text-base md:text-lg">{outletName}</h3><p className="text-xs md:text-sm text-slate-500 font-bold">{data.totalOrders} Orders | {data.visits?.length || 0} Visits</p></div>
                             <div className="text-left md:text-right">
-                              <p className="text-lg md:text-xl font-black text-poppik-green">₹{data.totalAmount.toLocaleString()}</p>
+                              <p className="text-lg md:text-xl font-black text-poppik-pink">₹{data.totalAmount.toLocaleString()}</p>
                               <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase">Life-time Value</p>
                             </div>
                           </div>
@@ -3138,10 +3090,10 @@ const PoppikSFA: React.FC = () => {
                               <button 
                                 key={`order-${order.id}`} 
                                 onClick={() => setViewingOrder(order)}
-                                className="p-4 bg-white rounded-xl md:rounded-2xl border border-slate-200 hover:border-poppik-green hover:shadow-lg transition-all text-left group"
+                                className="p-4 bg-white rounded-xl md:rounded-2xl border border-slate-200 hover:border-poppik-pink hover:shadow-lg transition-all text-left group"
                               >
                                 <div className="flex justify-between items-start mb-2">
-                                  <span className="text-[10px] md:text-xs font-black text-poppik-green uppercase tracking-widest">Order #{order.id}</span>
+                                  <span className="text-[10px] md:text-xs font-black text-poppik-pink uppercase tracking-widest">Order #{order.id}</span>
                                   <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
                                 </div>
                                 <div className="flex justify-between items-end">
@@ -3149,7 +3101,7 @@ const PoppikSFA: React.FC = () => {
                                     <p className="text-base md:text-lg font-black text-slate-800">₹{order.totalAmount.toLocaleString()}</p>
                                     <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-tighter">{(order.orderItems?.length || order.items?.length || 0)} Products</p>
                                   </div>
-                                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
+                                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-300 group-hover:text-poppik-pink group-hover:translate-x-1 transition-all" />
                                 </div>
                               </button>
                             ))}
@@ -3181,10 +3133,10 @@ const PoppikSFA: React.FC = () => {
 
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><MapPin className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Location-wise History</h2>
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><MapPin className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> Location-wise History</h2>
                       <button 
                         onClick={downloadLocationWiseReport}
-                        className="p-2 md:p-3 bg-poppik-green text-white rounded-xl hover:bg-green-600 transition-all shadow-md flex items-center shrink-0"
+                        className="p-2 md:p-3 bg-poppik-pink text-white rounded-xl hover:bg-pink-600 transition-all shadow-md flex items-center shrink-0"
                         title="Download Report"
                       >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
@@ -3202,7 +3154,7 @@ const PoppikSFA: React.FC = () => {
                            </div>
                            <div className="pt-4 border-t border-slate-200 flex justify-between items-end">
                               <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase">Total Sales</p>
-                              <p className="text-lg md:text-xl font-black text-poppik-green">₹{data.totalAmount.toLocaleString()}</p>
+                              <p className="text-lg md:text-xl font-black text-poppik-pink">₹{data.totalAmount.toLocaleString()}</p>
                            </div>
                         </div>
                       ))}
@@ -3214,10 +3166,10 @@ const PoppikSFA: React.FC = () => {
 
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Navigation className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Visit History</h2>
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Navigation className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> Visit History</h2>
                       <button 
                         onClick={downloadVisitReport}
-                        className="p-2 md:p-3 bg-poppik-green text-white rounded-xl hover:bg-green-600 transition-all shadow-md flex items-center shrink-0"
+                        className="p-2 md:p-3 bg-poppik-pink text-white rounded-xl hover:bg-pink-600 transition-all shadow-md flex items-center shrink-0"
                         title="Download Report"
                       >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
@@ -3228,10 +3180,10 @@ const PoppikSFA: React.FC = () => {
                         <button 
                           key={visit.id} 
                           onClick={() => setViewingVisit(visit)}
-                          className="w-full p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-poppik-green transition-all text-left"
+                          className="w-full p-4 md:p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-poppik-pink transition-all text-left"
                         >
                           <div className="flex items-center space-x-4">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${visit.type === 'ORDER' ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${visit.type === 'ORDER' ? 'bg-pink-100 text-poppik-pink' : 'bg-orange-100 text-orange-500'}`}>
                               {visit.type === 'ORDER' ? <ShoppingCart className="w-6 h-6" /> : <Store className="w-6 h-6" />}
                             </div>
                             <div>
@@ -3244,12 +3196,12 @@ const PoppikSFA: React.FC = () => {
                           </div>
                           <div className="text-right flex items-center">
                             <div className="mr-3">
-                              <span className={`inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-1 ${visit.type === 'ORDER' ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
+                              <span className={`inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-1 ${visit.type === 'ORDER' ? 'bg-pink-100 text-poppik-pink' : 'bg-orange-100 text-orange-500'}`}>
                                 {visit.type === 'ORDER' ? 'Order' : 'Visit Only'}
                               </span>
                               {visit.reason && <p className="text-[10px] font-bold text-slate-500 italic max-w-[120px] md:max-w-xs truncate">{visit.reason}</p>}
                             </div>
-                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-pink group-hover:translate-x-1 transition-all" />
                           </div>
                         </button>
                       ))}
@@ -3261,10 +3213,10 @@ const PoppikSFA: React.FC = () => {
 
                   <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-200 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Package className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-green" /> Product-wise History</h2>
+                      <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center"><Package className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> Product-wise History</h2>
                       <button 
                         onClick={downloadProductWiseReport}
-                        className="p-2 md:p-3 bg-poppik-green text-white rounded-xl hover:bg-green-600 transition-all shadow-md flex items-center shrink-0"
+                        className="p-2 md:p-3 bg-poppik-pink text-white rounded-xl hover:bg-pink-600 transition-all shadow-md flex items-center shrink-0"
                         title="Download Report"
                       >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
@@ -3291,7 +3243,7 @@ const PoppikSFA: React.FC = () => {
                                 <span className="px-2 md:px-3 py-0.5 md:py-1 bg-slate-100 text-slate-600 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest">{data.category}</span>
                               </td>
                               <td className="py-4 text-center font-black text-slate-700 text-sm md:text-base">{data.totalQuantity}</td>
-                              <td className="px-5 md:px-0 py-4 text-right font-black text-poppik-green text-sm md:text-base">₹{data.totalRevenue.toLocaleString()}</td>
+                              <td className="px-5 md:px-0 py-4 text-right font-black text-poppik-pink text-sm md:text-base">₹{data.totalRevenue.toLocaleString()}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -3311,8 +3263,8 @@ const PoppikSFA: React.FC = () => {
                     {orders.map(order => (
                         <div key={order.id} onClick={() => setViewingOrder(order)} className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm hover:shadow-xl transition-all cursor-pointer group">
                             <div className="flex justify-between items-start mb-6">
-                                <div><p className="font-black text-xl text-slate-800 mb-1 group-hover:text-poppik-green transition-colors">#{order.id}</p><p className="text-sm text-slate-500 font-bold">{order.outlet.name}</p></div>
-                                <div className={`text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-widest ${order.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{order.status}</div>
+                                <div><p className="font-black text-xl text-slate-800 mb-1 group-hover:text-poppik-pink transition-colors">#{order.id}</p><p className="text-sm text-slate-500 font-bold">{order.outlet.name}</p></div>
+                                <div className={`text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-widest ${order.status === 'Completed' ? 'bg-pink-100 text-pink-700' : 'bg-yellow-100 text-yellow-700'}`}>{order.status}</div>
                             </div>
                             <div className="space-y-3 mb-8">
                               <p className="text-sm text-slate-500 flex items-center"><Calendar className="w-4 h-4 mr-3 text-slate-400" />{new Date(order.createdAt).toLocaleDateString()}</p>
@@ -3321,7 +3273,7 @@ const PoppikSFA: React.FC = () => {
                             <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
                                 <p className="font-black text-2xl text-slate-800">₹{order.totalAmount.toLocaleString()}</p>
                                 <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                                  <button onClick={() => shareOnWhatsApp(order)} className="p-4 bg-green-50 text-green-600 rounded-2xl hover:bg-green-100 transition-all shadow-sm">
+                                  <button onClick={() => shareOnWhatsApp(order)} className="p-4 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-100 transition-all shadow-sm">
                                       <MessageCircle className="w-6 h-6" />
                                   </button>
                                   <button onClick={() => generateInvoice(order)} className="p-4 bg-slate-50 text-slate-600 rounded-2xl hover:bg-poppik-beige hover:text-poppik-black transition-all shadow-sm">
@@ -3342,7 +3294,7 @@ const PoppikSFA: React.FC = () => {
                   <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm flex flex-col items-center text-center">
                       <div className="w-28 h-28 md:w-40 md:h-40 bg-poppik-beige rounded-full flex items-center justify-center border-4 md:border-8 border-slate-50 shadow-inner mb-4 md:mb-6 relative">
                           <User className="text-poppik-black w-14 h-14 md:w-20 md:h-20" />
-                          <div className="absolute bottom-1 right-1 bg-poppik-green w-6 h-6 md:w-8 md:h-8 rounded-full border-2 md:border-4 border-white"></div>
+                          <div className="absolute bottom-1 right-1 bg-poppik-pink w-6 h-6 md:w-8 md:h-8 rounded-full border-2 md:border-4 border-white"></div>
                       </div>
                       <h1 className="text-2xl md:text-3xl font-black text-slate-800">{user?.name || 'Valued User'}</h1>
                       <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-sm mb-6 md:mb-8">{user?.role || 'Sales'} Associate • ID: #{user?.id || '000'}</p>
@@ -3354,7 +3306,7 @@ const PoppikSFA: React.FC = () => {
                         </div>
                         <div className="flex justify-between items-center border-b border-slate-200/50 pb-3">
                            <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Account Status</span>
-                           <span className="px-2 md:px-3 py-1 bg-green-100 text-green-700 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest">Active</span>
+                           <span className="px-2 md:px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest">Active</span>
                         </div>
                         <div className="flex justify-between items-center">
                            <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">Joined On</span>
@@ -3371,8 +3323,23 @@ const PoppikSFA: React.FC = () => {
             )}
 
             {currentScreen === 'attendance' && (
-              <ScreenWrapper title="Attendance & Leaves" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
-                <AttendanceView isPunchedIn={isPunchedIn} onPunch={handlePunch} api={api} />
+              <ScreenWrapper title="Visit" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+                <AttendanceView 
+                  outlets={outlets}
+                  activeOutlet={activeOutlet}
+                  setActiveOutlet={setActiveOutlet}
+                  setCurrentScreen={setCurrentScreen}
+                  visitFlowStep={visitFlowStep}
+                  setVisitFlowStep={setVisitFlowStep}
+                  visitNotes={visitNotes}
+                  setVisitNotes={setVisitNotes}
+                  visitRemark={visitRemark}
+                  setVisitRemark={setVisitRemark}
+                  visitImage={visitImage}
+                  setVisitImage={setVisitImage}
+                  onSubmitVisit={submitVisit}
+                  isSubmittingVisit={isSubmittingVisit}
+                />
               </ScreenWrapper>
             )}
 
@@ -3403,7 +3370,7 @@ const PoppikSFA: React.FC = () => {
                           <X className="w-6 h-6 mr-3" />
                           <span>Clear Catalog</span>
                         </button>
-                        <label className="px-8 py-4 bg-poppik-green text-white font-black rounded-2xl shadow-xl shadow-green-900/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center cursor-pointer">
+                        <label className="px-8 py-4 bg-poppik-pink text-white font-black rounded-2xl shadow-xl shadow-pink-900/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center cursor-pointer">
                           <CloudUpload className="w-6 h-6 mr-3" />
                           <span>Upload Excel (.xlsx)</span>
                           <input 
@@ -3549,14 +3516,14 @@ const PoppikSFA: React.FC = () => {
                               <td className="px-4 py-6 text-center text-sm font-bold text-slate-600">{product.hsn || '-'}</td>
                               <td className="px-4 py-6 text-center text-sm font-bold text-slate-600">{product.boxSize || '-'}</td>
                               <td className="px-4 py-6 text-right font-black text-slate-800">₹{product.mrp || 0}</td>
-                              <td className="px-4 py-6 text-right font-black text-poppik-green">₹{product.price}</td>
+                              <td className="px-4 py-6 text-right font-black text-poppik-pink">₹{product.price}</td>
                               <td className="px-4 py-6 text-center font-bold text-slate-600">{product.gst || 0}%</td>
                               <td className="px-4 py-6 text-center font-bold text-slate-500">{product.stock}</td>
                               <td className="px-8 py-6 text-right">
                                 <div className="flex items-center justify-end space-x-2">
                                   <button 
                                     onClick={() => setEditingProduct(product)}
-                                    className="p-2 text-slate-400 hover:text-poppik-green hover:bg-green-50 rounded-lg transition-all"
+                                    className="p-2 text-slate-400 hover:text-poppik-pink hover:bg-pink-50 rounded-lg transition-all"
                                   >
                                     <Pencil className="w-5 h-5" />
                                   </button>
@@ -3598,25 +3565,25 @@ const PoppikSFA: React.FC = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                          <h3 className="text-xl font-bold mb-6 flex items-center"><Target className="w-6 h-6 mr-3 text-poppik-green" /> Quick Admin Actions</h3>
+                          <h3 className="text-xl font-bold mb-6 flex items-center"><Target className="w-6 h-6 mr-3 text-poppik-pink" /> Quick Admin Actions</h3>
                           <div className="grid grid-cols-1 gap-4">
                             <button onClick={() => setCurrentScreen('adminUsers')} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl hover:bg-poppik-beige transition-all group border border-slate-100">
                                 <div className="flex items-center space-x-4">
-                                  <div className="bg-white p-3 rounded-xl shadow-sm"><User className="w-6 h-6 text-poppik-green" /></div>
+                                  <div className="bg-white p-3 rounded-xl shadow-sm"><User className="w-6 h-6 text-poppik-pink" /></div>
                                   <div className="text-left"><p className="font-bold text-slate-800">Manage Team</p><p className="text-sm text-slate-500">View and edit team members</p></div>
                                 </div>
                                 <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-1 transition-all" />
                             </button>
                             <button onClick={() => setCurrentScreen('adminReports')} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl hover:bg-poppik-beige transition-all group border border-slate-100">
                                 <div className="flex items-center space-x-4">
-                                  <div className="bg-white p-3 rounded-xl shadow-sm"><BarChart3 className="w-6 h-6 text-poppik-green" /></div>
+                                  <div className="bg-white p-3 rounded-xl shadow-sm"><BarChart3 className="w-6 h-6 text-poppik-pink" /></div>
                                   <div className="text-left"><p className="font-bold text-slate-800">Sales Reports</p><p className="text-sm text-slate-500">Deep analysis of salesmen performance</p></div>
                                 </div>
                                 <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-1 transition-all" />
                             </button>
                             <button onClick={() => setCurrentScreen('adminLeaves')} className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl hover:bg-poppik-beige transition-all group border border-slate-100">
                                 <div className="flex items-center space-x-4">
-                                  <div className="bg-white p-3 rounded-xl shadow-sm"><Calendar className="w-6 h-6 text-poppik-green" /></div>
+                                  <div className="bg-white p-3 rounded-xl shadow-sm"><Calendar className="w-6 h-6 text-poppik-pink" /></div>
                                   <div className="text-left"><p className="font-bold text-slate-800">Leave Requests</p><p className="text-sm text-slate-500">Approve or reject leave applications</p></div>
                                 </div>
                                 <ChevronRight className="w-6 h-6 text-slate-400 group-hover:translate-x-1 transition-all" />
@@ -3635,7 +3602,7 @@ const PoppikSFA: React.FC = () => {
                       <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-xs">Team Wise Activity</p>
                       <button 
                         onClick={downloadAdminTeamReport}
-                        className="px-4 py-2 bg-poppik-green text-white font-black rounded-xl text-[10px] md:text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-green-900/10 flex items-center space-x-2"
+                        className="px-4 py-2 bg-poppik-pink text-white font-black rounded-xl text-[10px] md:text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-pink-900/10 flex items-center space-x-2"
                       >
                         <CloudUpload className="w-4 h-4" />
                         <span>Download All Reports</span>
@@ -3645,7 +3612,7 @@ const PoppikSFA: React.FC = () => {
                      <div key={salesman.id} className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
                         <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
                            <div className="flex items-center space-x-4">
-                              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100"><User className="w-8 h-8 text-poppik-green" /></div>
+                              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100"><User className="w-8 h-8 text-poppik-pink" /></div>
                               <div>
                                  <div className="flex items-center space-x-3">
                                     <h3 className="text-2xl font-black text-slate-800">{salesman.name}</h3>
@@ -3661,7 +3628,7 @@ const PoppikSFA: React.FC = () => {
                               </div>
                            </div>
                            <div className="flex gap-4">
-                              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Revenue</p><p className="text-xl font-black text-poppik-green">₹{salesman.totalRevenue.toLocaleString()}</p></div>
+                              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Revenue</p><p className="text-xl font-black text-poppik-pink">₹{salesman.totalRevenue.toLocaleString()}</p></div>
                               <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Visits</p><p className="text-xl font-black text-slate-800">{salesman.totalVisits || 0}</p></div>
                               <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Strike Rate</p><p className="text-xl font-black text-orange-500">{salesman.strikeRate || 0}%</p></div>
                               <div className="bg-white px-6 py-3 rounded-2xl border border-slate-100 shadow-sm text-center"><p className="text-[10px] font-black text-slate-400 uppercase">Outlets</p><p className="text-xl font-black text-slate-800">{salesman.uniqueOutlets}</p></div>
@@ -3676,15 +3643,15 @@ const PoppikSFA: React.FC = () => {
                                     <button 
                                       key={order.id} 
                                       onClick={() => setViewingOrder(order)}
-                                      className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:border-poppik-green hover:shadow-lg transition-all group"
+                                      className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:border-poppik-pink hover:shadow-lg transition-all group"
                                     >
                                        <div className="min-w-0 flex-1 text-left">
-                                          <p className="font-bold text-slate-800 truncate text-sm group-hover:text-poppik-green transition-colors">{order.outlet?.name}</p>
+                                          <p className="font-bold text-slate-800 truncate text-sm group-hover:text-poppik-pink transition-colors">{order.outlet?.name}</p>
                                           <p className="text-[10px] text-slate-400 font-bold">{new Date(order.createdAt).toLocaleDateString()}</p>
                                        </div>
                                        <div className="text-right shrink-0 ml-4 flex items-center">
-                                          <p className="font-black text-poppik-green text-sm mr-2">₹{order.totalAmount.toLocaleString()}</p>
-                                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
+                                          <p className="font-black text-poppik-pink text-sm mr-2">₹{order.totalAmount.toLocaleString()}</p>
+                                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-pink group-hover:translate-x-1 transition-all" />
                                        </div>
                                     </button>
                                   ))}
@@ -3698,18 +3665,18 @@ const PoppikSFA: React.FC = () => {
                                     <button 
                                       key={visit.id} 
                                       onClick={() => setViewingVisit(visit)}
-                                      className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:border-poppik-green hover:shadow-lg transition-all group"
+                                      className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center hover:bg-white hover:border-poppik-pink hover:shadow-lg transition-all group"
                                     >
                                        <div className="min-w-0 flex-1 text-left">
-                                          <p className="font-bold text-slate-800 truncate text-sm group-hover:text-poppik-green transition-colors">{visit.outlet?.name}</p>
+                                          <p className="font-bold text-slate-800 truncate text-sm group-hover:text-poppik-pink transition-colors">{visit.outlet?.name}</p>
                                           <p className="text-[10px] text-slate-400 font-bold">{new Date(visit.timestamp).toLocaleDateString()} • {visit.type === 'ORDER' ? 'Order' : 'Visit Only'}</p>
                                        </div>
                                        <div className="text-right shrink-0 ml-4 flex items-center">
                                           <div className="mr-2">
-                                            <p className={`text-[10px] font-black uppercase tracking-widest ${visit.type === 'ORDER' ? 'text-poppik-green' : 'text-orange-500'}`}>{visit.type === 'ORDER' ? 'Success' : 'No Order'}</p>
+                                            <p className={`text-[10px] font-black uppercase tracking-widest ${visit.type === 'ORDER' ? 'text-poppik-pink' : 'text-orange-500'}`}>{visit.type === 'ORDER' ? 'Success' : 'No Order'}</p>
                                             {visit.reason && <p className="text-[9px] font-bold text-slate-400 truncate max-w-[80px] italic">{visit.reason}</p>}
                                           </div>
-                                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-green group-hover:translate-x-1 transition-all" />
+                                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-poppik-pink group-hover:translate-x-1 transition-all" />
                                        </div>
                                     </button>
                                   ))}
@@ -3750,7 +3717,7 @@ const PoppikSFA: React.FC = () => {
                               <td className="py-6 text-sm text-slate-600 max-w-xs truncate">{leave.reason}</td>
                               <td className="py-6">
                                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                  leave.status === 'Approved' ? 'bg-green-100 text-poppik-green' :
+                                  leave.status === 'Approved' ? 'bg-pink-100 text-poppik-pink' :
                                   leave.status === 'Rejected' ? 'bg-red-100 text-red-500' :
                                   'bg-orange-100 text-orange-500'
                                 }`}>
@@ -3767,7 +3734,7 @@ const PoppikSFA: React.FC = () => {
                                           fetchAdminLeaves();
                                         } catch (err) { alert("Failed to approve"); }
                                       }}
-                                      className="p-2 bg-green-50 text-poppik-green rounded-xl hover:bg-green-100 transition-all"
+                                      className="p-2 bg-pink-50 text-poppik-pink rounded-xl hover:bg-pink-100 transition-all"
                                     >
                                       <ShieldCheck size={20} />
                                     </button>
@@ -3806,7 +3773,7 @@ const PoppikSFA: React.FC = () => {
                     <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-center mb-8">
                             <h3 className="text-2xl font-black text-slate-800">Team Members</h3>
-                            <button onClick={() => { setLoginForm({ phone: '', password: '', name: '', role: 'sales' }); setCurrentScreen('adminAddUser'); }} className="px-6 py-3 bg-poppik-green text-white font-bold rounded-xl flex items-center space-x-2 hover:scale-105 transition-all shadow-lg shadow-green-900/10">
+                            <button onClick={() => { setLoginForm({ phone: '', password: '', name: '', role: 'sales' }); setCurrentScreen('adminAddUser'); }} className="px-6 py-3 bg-poppik-pink text-white font-bold rounded-xl flex items-center space-x-2 hover:scale-105 transition-all shadow-lg shadow-pink-900/10">
                                 <Plus className="w-5 h-5" /><span>Add Member</span>
                             </button>
                         </div>
@@ -3860,7 +3827,7 @@ const PoppikSFA: React.FC = () => {
                           type="text" 
                           value={loginForm.name}
                           onChange={e => setLoginForm({...loginForm, name: e.target.value})}
-                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" 
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" 
                           placeholder="Enter full name"
                           required
                         />
@@ -3871,34 +3838,43 @@ const PoppikSFA: React.FC = () => {
                           type="text" 
                           value={loginForm.phone}
                           onChange={e => setLoginForm({...loginForm, phone: e.target.value})}
-                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" 
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" 
                           placeholder="Enter phone"
                           required
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-black text-slate-400 uppercase mb-2">Password</label>
-                        <input 
-                          type="password" 
-                          value={loginForm.password}
-                          onChange={e => setLoginForm({...loginForm, password: e.target.value})}
-                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" 
-                          placeholder="Set initial password"
-                          required
-                        />
+                        <div className="relative">
+                          <input 
+                            type={showPassword ? "text" : "password"} 
+                            value={loginForm.password}
+                            onChange={e => setLoginForm({...loginForm, password: e.target.value})}
+                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold pr-12" 
+                            placeholder="Set initial password"
+                            required
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-xs font-black text-slate-400 uppercase mb-2">Account Role</label>
                         <select 
                           value={loginForm.role}
                           onChange={e => setLoginForm({...loginForm, role: e.target.value})}
-                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold appearance-none"
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold appearance-none"
                         >
                           <option value="sales">Sales Associate</option>
                           <option value="admin">Admin Manager</option>
                         </select>
                       </div>
-                      <button type="submit" className="w-full py-5 bg-poppik-green text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
+                      <button type="submit" className="w-full py-5 bg-poppik-pink text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
                         Create Member Account
                       </button>
                   </form>
@@ -3916,7 +3892,7 @@ const PoppikSFA: React.FC = () => {
                           type="text" 
                           value={editingUser?.name || ''}
                           onChange={e => setEditingUser({...editingUser, name: e.target.value})}
-                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" 
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" 
                           placeholder="Enter full name"
                           required
                         />
@@ -3927,33 +3903,42 @@ const PoppikSFA: React.FC = () => {
                    type="text" 
                    value={editingUser?.phone || ''}
                    onChange={e => setEditingUser({...editingUser, phone: e.target.value})}
-                   className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" 
+                   className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" 
                    placeholder="Enter phone"
                    required
                  />
               </div>
               <div>
                  <label className="block text-xs font-black text-slate-400 uppercase mb-2">New Password (Leave blank to keep same)</label>
-                 <input 
-                   type="password" 
-                   value={editingUser?.password || ''}
-                   onChange={e => setEditingUser({...editingUser, password: e.target.value})}
-                   className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" 
-                   placeholder="••••••••"
-                 />
+                 <div className="relative">
+                   <input 
+                     type={showPassword ? "text" : "password"} 
+                     value={editingUser?.password || ''}
+                     onChange={e => setEditingUser({...editingUser, password: e.target.value})}
+                     className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold pr-12" 
+                     placeholder="••••••••"
+                   />
+                   <button 
+                     type="button"
+                     onClick={() => setShowPassword(!showPassword)}
+                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                   >
+                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                   </button>
+                 </div>
               </div>
               <div>
                  <label className="block text-xs font-black text-slate-400 uppercase mb-2">Account Role</label>
                         <select 
                           value={editingUser?.role || 'sales'}
                           onChange={e => setEditingUser({...editingUser, role: e.target.value})}
-                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold appearance-none"
+                          className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold appearance-none"
                         >
                           <option value="sales">Sales Associate</option>
                           <option value="admin">Admin Manager</option>
                         </select>
                       </div>
-                      <button type="submit" className="w-full py-5 bg-poppik-green text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
+                      <button type="submit" className="w-full py-5 bg-poppik-pink text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all">
                         Update Member Details
                       </button>
                   </form>
@@ -3974,68 +3959,102 @@ const PoppikSFA: React.FC = () => {
         ) : (
           <>
             <BottomNavItem icon={<Home />} label="Home" screen="dashboard" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
-            <BottomNavItem icon={<Clock />} label="Attend" screen="attendance" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
-            <BottomNavItem icon={<ShoppingCart />} label="Visit" screen="createOrder" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
+            <BottomNavItem icon={<Clock />} label="Visit" screen="attendance" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
+            <BottomNavItem icon={<ShoppingCart />} label="Order" screen="createOrder" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
             <BottomNavItem icon={<BarChart3 />} label="Reports" screen="reports" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
           </>
         )}
-        <BottomNavItem icon={<User />} label="Profile" screen="profile" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
+        <BottomNavItem icon={<User />} label="Clients" screen="addClient" currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
       </div>
 
       {/* Visit Detail Modal */}
       {viewingVisit && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="p-5 md:p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 shrink-0">
               <div>
-                <h3 className="text-2xl font-black text-slate-800">Visit Details</h3>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Visit Log • {new Date(viewingVisit.timestamp).toLocaleString()}</p>
+                <h3 className="text-xl md:text-2xl font-black text-slate-800">Visit Details</h3>
+                <p className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Visit Log • {new Date(viewingVisit.timestamp).toLocaleString()}</p>
               </div>
-              <button onClick={() => setViewingVisit(null)} className="p-3 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-2xl transition-all"><X size={24} /></button>
+              <button onClick={() => setViewingVisit(null)} className="p-2 md:p-3 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-xl md:rounded-2xl transition-all"><X size={24} className="md:w-7 md:h-7" /></button>
             </div>
             
-            <div className="p-8 space-y-8">
+            <div className="p-5 md:p-8 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar flex-1">
               {/* Outlet Info */}
-              <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100">
+              <div className="p-5 md:p-6 bg-slate-50 rounded-2xl md:rounded-[32px] border border-slate-100">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Outlet Information</h4>
                 <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                    <Store className="w-6 h-6 text-poppik-green" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                    <Store className="w-5 h-5 md:w-6 md:h-6 text-poppik-pink" />
                   </div>
                   <div>
-                    <p className="font-black text-lg text-slate-800">{viewingVisit.outlet?.name}</p>
-                    <p className="text-sm text-slate-500 font-medium leading-relaxed">{viewingVisit.outlet?.area}, {viewingVisit.outlet?.city}</p>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1 italic">{viewingVisit.outlet?.address}</p>
+                    <p className="font-black text-base md:text-lg text-slate-800 leading-tight">{viewingVisit.outlet?.name}</p>
+                    <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed mt-1">{viewingVisit.outlet?.area}, {viewingVisit.outlet?.city}</p>
+                    <p className="text-[9px] md:text-[10px] text-slate-400 font-bold mt-1 italic">{viewingVisit.outlet?.address}</p>
                   </div>
                 </div>
               </div>
 
               {/* Visit Info */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 bg-white border border-slate-100 rounded-2xl">
+                <div className="p-4 md:p-5 bg-white border border-slate-100 rounded-xl md:rounded-2xl">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Visit Type</p>
-                  <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${viewingVisit.type === 'ORDER' ? 'bg-green-100 text-poppik-green' : 'bg-orange-100 text-orange-500'}`}>
+                  <span className={`inline-block px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest ${viewingVisit.type === 'ORDER' ? 'bg-pink-100 text-poppik-pink' : 'bg-orange-100 text-orange-500'}`}>
                     {viewingVisit.type === 'ORDER' ? 'Order Placed' : 'No Order'}
                   </span>
                 </div>
-                <div className="p-5 bg-white border border-slate-100 rounded-2xl">
+                <div className="p-4 md:p-5 bg-white border border-slate-100 rounded-xl md:rounded-2xl">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">GPS Status</p>
                   {viewingVisit.latitude ? (
-                    <div className="flex items-center text-blue-500 font-black text-[10px] uppercase">
+                    <div className="flex items-center text-blue-500 font-black text-[9px] md:text-[10px] uppercase">
                       <MapPin className="w-3 h-3 mr-1" /> Logged
                     </div>
                   ) : (
-                    <div className="flex items-center text-slate-400 font-black text-[10px] uppercase">
+                    <div className="flex items-center text-slate-400 font-black text-[9px] md:text-[10px] uppercase">
                       <X className="w-3 h-3 mr-1" /> No GPS
                     </div>
                   )}
                 </div>
               </div>
 
+              {viewingVisit.photo && (
+                <div className="space-y-3">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Visit Photo</p>
+                  <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-slate-100 shadow-sm bg-slate-50">
+                    <img 
+                      src={`${FILE_BASE}${viewingVisit.photo}`} 
+                      alt="Visit" 
+                      className="w-full h-auto max-h-[250px] md:max-h-[300px] object-contain mx-auto"
+                      onError={(e) => {
+                        console.error("Image load failed:", (e.target as HTMLImageElement).src);
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/png?text=Image+Not+Found';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(viewingVisit.notes || viewingVisit.remark) && (
+                <div className="space-y-4">
+                  {viewingVisit.notes && (
+                    <div className="p-4 md:p-5 bg-white border border-slate-100 rounded-xl md:rounded-2xl">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Notes</p>
+                      <p className="font-bold text-slate-700 text-sm">{viewingVisit.notes}</p>
+                    </div>
+                  )}
+                  {viewingVisit.remark && (
+                    <div className="p-4 md:p-5 bg-white border border-slate-100 rounded-xl md:rounded-2xl">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Remark</p>
+                      <p className="font-bold text-slate-700 text-sm">{viewingVisit.remark}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {viewingVisit.reason && (
-                <div className="p-6 bg-orange-50/30 border border-orange-100/50 rounded-2xl">
+                <div className="p-5 md:p-6 bg-orange-50/30 border border-orange-100/50 rounded-xl md:rounded-2xl">
                   <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-2">Reason / Comment</p>
-                  <p className="font-bold text-slate-700 leading-relaxed">{viewingVisit.reason}</p>
+                  <p className="font-bold text-slate-700 text-sm md:text-base leading-relaxed">{viewingVisit.reason}</p>
                 </div>
               )}
 
@@ -4044,7 +4063,7 @@ const PoppikSFA: React.FC = () => {
                   href={`https://www.google.com/maps?q=${viewingVisit.latitude},${viewingVisit.longitude}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center space-x-2"
+                  className="w-full py-4 bg-slate-900 text-white text-xs md:text-sm font-black uppercase tracking-widest rounded-xl md:rounded-2xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center justify-center space-x-2"
                 >
                   <Navigation size={20} />
                   <span>View on Google Maps</span>
@@ -4073,7 +4092,7 @@ const PoppikSFA: React.FC = () => {
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Customer Information</h4>
                 <div className="flex items-start space-x-4">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                    <Store className="w-6 h-6 text-poppik-green" />
+                    <Store className="w-6 h-6 text-poppik-pink" />
                   </div>
                   <div>
                     <p className="font-black text-lg text-slate-800">{viewingOrder.outlet.name}</p>
@@ -4090,7 +4109,7 @@ const PoppikSFA: React.FC = () => {
                 {viewingOrder.orderItems?.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl">
                     <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center font-black text-poppik-green text-xs">
+                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center font-black text-poppik-pink text-xs">
                         {idx + 1}
                       </div>
                       <div>
@@ -4100,7 +4119,7 @@ const PoppikSFA: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-black text-slate-800">₹{item.priceAtTime} × {item.quantity}</p>
-                      <p className="text-xs font-black text-poppik-green mt-0.5">₹{(item.priceAtTime * item.quantity).toLocaleString()}</p>
+                      <p className="text-xs font-black text-poppik-pink mt-0.5">₹{(item.priceAtTime * item.quantity).toLocaleString()}</p>
                     </div>
                   </div>
                 ))}
@@ -4110,7 +4129,7 @@ const PoppikSFA: React.FC = () => {
               <div className="mt-8 pt-8 border-t border-slate-100">
                 <div className="flex justify-between items-center">
                   <p className="text-lg font-bold text-slate-500">Grand Total</p>
-                  <p className="text-3xl font-black text-poppik-green">₹{viewingOrder.totalAmount.toLocaleString()}</p>
+                  <p className="text-3xl font-black text-poppik-pink">₹{viewingOrder.totalAmount.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -4118,7 +4137,7 @@ const PoppikSFA: React.FC = () => {
             <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex gap-4">
               <button 
                 onClick={(e) => { e.stopPropagation(); shareOnWhatsApp(viewingOrder); setViewingOrder(null); }}
-                className="flex-1 py-4 bg-green-500 text-white font-black rounded-2xl shadow-lg shadow-green-900/20 hover:bg-green-600 transition-all flex items-center justify-center space-x-2"
+                className="flex-1 py-4 bg-pink-500 text-white font-black rounded-2xl shadow-lg shadow-pink-900/20 hover:bg-pink-600 transition-all flex items-center justify-center space-x-2"
               >
                 <MessageCircle size={20} />
                 <span>Share on WhatsApp</span>
@@ -4155,48 +4174,48 @@ const PoppikSFA: React.FC = () => {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Product Name</label>
-                  <input type="text" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" required />
+                  <input type="text" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" required />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Product Code</label>
-                  <input type="text" value={editingProduct.productCode || ''} onChange={e => setEditingProduct({...editingProduct, productCode: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" />
+                  <input type="text" value={editingProduct.productCode || ''} onChange={e => setEditingProduct({...editingProduct, productCode: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Category</label>
-                  <input type="text" value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" required />
+                  <input type="text" value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" required />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Box Size</label>
-                  <input type="text" value={editingProduct.boxSize || ''} onChange={e => setEditingProduct({...editingProduct, boxSize: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" />
+                  <input type="text" value={editingProduct.boxSize || ''} onChange={e => setEditingProduct({...editingProduct, boxSize: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">MRP (₹)</label>
-                  <input type="number" value={editingProduct.mrp || 0} onChange={e => setEditingProduct({...editingProduct, mrp: parseFloat(e.target.value)})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" />
+                  <input type="number" value={editingProduct.mrp || 0} onChange={e => setEditingProduct({...editingProduct, mrp: parseFloat(e.target.value)})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Rate (₹)</label>
-                  <input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" required />
+                  <input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: parseFloat(e.target.value)})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" required />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">Stock</label>
-                  <input type="number" value={editingProduct.stock} onChange={e => setEditingProduct({...editingProduct, stock: parseInt(e.target.value)})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" required />
+                  <input type="number" value={editingProduct.stock} onChange={e => setEditingProduct({...editingProduct, stock: parseInt(e.target.value)})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" required />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">HSN Code</label>
-                  <input type="text" value={editingProduct.hsn || ''} onChange={e => setEditingProduct({...editingProduct, hsn: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" />
+                  <input type="text" value={editingProduct.hsn || ''} onChange={e => setEditingProduct({...editingProduct, hsn: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase mb-2">GST (%)</label>
-                  <input type="number" value={editingProduct.gst || 0} onChange={e => setEditingProduct({...editingProduct, gst: parseFloat(e.target.value)})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-green/10 outline-none transition-all font-bold" />
+                  <input type="number" value={editingProduct.gst || 0} onChange={e => setEditingProduct({...editingProduct, gst: parseFloat(e.target.value)})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 outline-none transition-all font-bold" />
                 </div>
               </div>
-              <button type="submit" className="w-full py-5 bg-poppik-green text-white font-black rounded-2xl shadow-xl shadow-green-900/20 hover:scale-[1.02] active:scale-95 transition-all">
+              <button type="submit" className="w-full py-5 bg-poppik-pink text-white font-black rounded-2xl shadow-xl shadow-pink-900/20 hover:scale-[1.02] active:scale-95 transition-all">
                 Save Changes
               </button>
             </form>

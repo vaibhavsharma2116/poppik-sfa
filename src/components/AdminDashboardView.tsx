@@ -87,24 +87,24 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ token }) => {
       {
         label: 'Units Sold',
         data: (salesData || []).map(d => d.totalSold || 0),
-        backgroundColor: 'rgba(45, 90, 39, 0.7)',
-        borderColor: 'rgba(45, 90, 39, 1)',
+        backgroundColor: 'rgba(236, 115, 171, 0.7)',
+        borderColor: 'rgba(236, 115, 171, 1)',
         borderWidth: 1,
         borderRadius: 8,
       },
     ],
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-poppik-green"></div></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-poppik-pink"></div></div>;
 
   return (
     <div className="space-y-8">
       <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-black text-slate-800 flex items-center">
-            <MapIcon className="w-6 h-6 mr-3 text-poppik-green" /> Live Field Map
+            <MapIcon className="w-6 h-6 mr-3 text-poppik-pink" /> Live Field Map
           </h3>
-          <span className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
+          <span className="px-4 py-2 bg-pink-100 text-pink-700 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
             Live • {liveUsers.length} Active
           </span>
         </div>
@@ -121,7 +121,7 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ token }) => {
                     <div className="p-2">
                       <p className="font-black text-slate-800 text-lg">{user?.name || 'Unknown'}</p>
                       <p className="text-sm text-slate-500 font-bold">{user?.phone || 'No Phone'}</p>
-                      <div className="mt-2 pt-2 border-t border-slate-100 flex items-center text-xs text-poppik-green font-black">
+                      <div className="mt-2 pt-2 border-t border-slate-100 flex items-center text-xs text-poppik-pink font-black">
                         <Clock className="w-3 h-3 mr-1" /> Punched In: {user?.timestamp ? new Date(user.timestamp).toLocaleTimeString() : 'N/A'}
                       </div>
                     </div>
@@ -137,7 +137,7 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ token }) => {
         {/* Sales Analytics Chart */}
         <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
           <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center">
-            <BarChart3 className="w-6 h-6 mr-3 text-poppik-green" /> Top Selling Products
+            <BarChart3 className="w-6 h-6 mr-3 text-poppik-pink" /> Top Selling Products
           </h3>
           <div className="h-64">
             {salesData.length > 0 ? (
@@ -159,7 +159,7 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ token }) => {
         {/* Inventory Alerts */}
         <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
           <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center">
-            <Package className="w-6 h-6 mr-3 text-poppik-green" /> Inventory Alerts
+            <Package className="w-6 h-6 mr-3 text-poppik-pink" /> Inventory Alerts
           </h3>
           <div className="space-y-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
             {inventoryAlerts.length > 0 ? inventoryAlerts.map(product => (

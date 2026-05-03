@@ -6,6 +6,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const cron = require('node-cron');
 const axios = require('axios');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 dotenv.config();
 const app = express();
@@ -14,6 +17,31 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// Static folder for uploaded images with CORS
+app.use('/uploads', cors(), express.static(uploadsDir));
+
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // --- Image Proxy to bypass CORS ---
 app.get('/api/proxy-image', async (req, res) => {
@@ -131,6 +159,22 @@ app.get('/api/admin/live-map', authenticateToken, isAdmin, async (req, res) => {
         attendances: {
           orderBy: { timestamp: 'desc' },
           take: 1
+        },
+        visits: {
+          select: {
+            id: true,
+            outletId: true,
+            type: true,
+            reason: true,
+            notes: true,
+            remark: true,
+            photo: true,
+            timestamp: true,
+            latitude: true,
+            longitude: true,
+            outlet: true
+          },
+          orderBy: { timestamp: 'desc' }
         }
       }
     });
@@ -238,6 +282,22 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
         attendances: {
           orderBy: { timestamp: 'desc' },
           take: 1
+        },
+        visits: {
+          select: {
+            id: true,
+            outletId: true,
+            type: true,
+            reason: true,
+            notes: true,
+            remark: true,
+            photo: true,
+            timestamp: true,
+            latitude: true,
+            longitude: true,
+            outlet: true
+          },
+          orderBy: { timestamp: 'desc' }
         }
       }
     });
@@ -246,17 +306,19 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
     const analyzedReports = reports.map(salesman => {
       try {
         const orders = salesman.orders || [];
+        const visits = salesman.visits || [];
         const attendances = salesman.attendances || [];
 
         const totalRevenue = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
         const totalOrders = orders.length;
-        const totalVisits = 0;
+        const totalVisits = visits.length;
         
         // Combine outlet IDs from both orders and visits to get total unique outlets covered
         const orderOutletIds = orders.map(o => o.outletId).filter(id => id != null);
-        const uniqueOutlets = new Set([...orderOutletIds]).size;
+        const visitOutletIds = visits.map(v => v.outletId).filter(id => id != null);
+        const uniqueOutlets = new Set([...orderOutletIds, ...visitOutletIds]).size;
 
-        const strikeRate = 0;
+        const strikeRate = totalVisits > 0 ? (totalOrders / totalVisits) * 100 : 0;
         
         return {
           id: salesman.id,
@@ -268,7 +330,7 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
           strikeRate: isNaN(strikeRate) ? 0 : parseFloat(strikeRate.toFixed(2)),
           uniqueOutlets,
           lastPunch: attendances[0] || null,
-          recentOrders: orders.slice(-5).map(o => ({
+          recentOrders: orders.slice(0, 5).map(o => ({
             id: o.id,
             totalAmount: o.totalAmount || 0,
             createdAt: o.createdAt,
@@ -288,6 +350,23 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
               quantity: item.quantity || 0,
               priceAtTime: item.priceAtTime || 0
             }))
+          })),
+          recentVisits: visits.slice(0, 5).map(v => ({
+            id: v.id,
+            outlet: v.outlet ? {
+              name: v.outlet.name,
+              area: v.outlet.area || 'N/A',
+              city: v.outlet.city || 'N/A',
+              address: v.outlet.address || 'N/A'
+            } : { name: 'Unknown Outlet' },
+            type: v.type,
+            reason: v.reason || '-',
+            notes: v.notes,
+            remark: v.remark,
+            photo: v.photo,
+            timestamp: v.timestamp,
+            latitude: v.latitude,
+            longitude: v.longitude
           }))
         };
       } catch (mapErr) {
@@ -721,23 +800,52 @@ app.get('/api/orders', authenticateToken, async (req, res) => {
 });
 
 // --- Visit APIs ---
-app.post('/api/visits', authenticateToken, async (req, res) => {
-  const { outletId, type, reason, latitude, longitude } = req.body;
+app.post('/api/visits', authenticateToken, upload.single('photo'), async (req, res) => {
+  console.log("================ VISIT SUBMISSION START ================");
+  console.log("[VISIT_API] User ID:", req.user.id);
+  console.log("[VISIT_API] Raw Body:", req.body);
+  console.log("[VISIT_API] File Info:", req.file ? {
+    filename: req.file.filename,
+    path: req.file.path,
+    mimetype: req.file.mimetype
+  } : 'No file uploaded');
+  
+  const { outletId, type, reason, notes, remark, latitude, longitude } = req.body;
+  const photo = req.file ? `/uploads/${req.file.filename}` : null;
+  
   try {
+    const visitData = {
+      userId: req.user.id,
+      outletId: parseInt(outletId),
+      type, // ORDER or NO_ORDER
+      reason: reason || 'Visit',
+      notes: notes || null,
+      remark: remark || null,
+      photo: photo || null,
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
+      timestamp: new Date()
+    };
+
+    console.log("[VISIT_API] Attempting to create visit in DB with data:", visitData);
+
     const visit = await prisma.visit.create({
-      data: {
-        userId: req.user.id,
-        outletId: parseInt(outletId),
-        type, // ORDER or NO_ORDER
-        reason,
-        latitude: latitude ? parseFloat(latitude) : null,
-        longitude: longitude ? parseFloat(longitude) : null,
-        timestamp: new Date()
-      }
+      data: visitData
     });
+
+    console.log("[VISIT_API] Visit created successfully in DB:", visit.id);
+    console.log("================ VISIT SUBMISSION END ==================");
     res.status(201).json(visit);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("!!!!!!!!!!!!!!!! VISIT SUBMISSION ERROR !!!!!!!!!!!!!!!!");
+    console.error("[VISIT_API] Error Message:", err.message);
+    console.error("[VISIT_API] Full Error:", err);
+    console.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    res.status(500).json({ 
+      error: "Database Error", 
+      message: err.message,
+      tip: "If 'Unknown field' error occurs, restart the backend server." 
+    });
   }
 });
 
@@ -745,7 +853,18 @@ app.get('/api/visits', authenticateToken, async (req, res) => {
   try {
     const visits = await prisma.visit.findMany({
       where: { userId: req.user.id },
-      include: { outlet: true },
+      select: {
+        id: true,
+        type: true,
+        reason: true,
+        notes: true,
+        remark: true,
+        photo: true,
+        timestamp: true,
+        latitude: true,
+        longitude: true,
+        outlet: true
+      },
       orderBy: { timestamp: 'desc' }
     });
     res.json(visits);
@@ -861,6 +980,9 @@ app.get('/api/reports/party-wise', authenticateToken, async (req, res) => {
             id: v.id,
             type: v.type,
             reason: v.reason,
+            notes: v.notes,
+            remark: v.remark,
+            photo: v.photo,
             timestamp: v.timestamp,
             latitude: v.latitude,
             longitude: v.longitude
