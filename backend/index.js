@@ -665,6 +665,12 @@ app.get('/api/outlets', authenticateToken, async (req, res) => {
 app.post('/api/outlets', authenticateToken, async (req, res) => {
   const { name, beat_name, area, city, owner_name, owner_no, class: outletClass, address, latitude, longitude, gstNumber } = req.body;
   try {
+    // Validate that req.user.id exists and is a valid number
+    const userId = parseInt(req.user.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "Invalid user session. Please logout and login again." });
+    }
+
     const outlet = await prisma.outlet.create({
       data: { 
         name, 
@@ -675,14 +681,18 @@ app.post('/api/outlets', authenticateToken, async (req, res) => {
         owner_no, 
         class: outletClass, 
         address, 
-        latitude, 
-        longitude, 
+        latitude: latitude ? parseFloat(latitude) : null, 
+        longitude: longitude ? parseFloat(longitude) : null, 
         gstNumber,
-        userId: req.user.id // Link outlet to the salesperson
+        userId: userId // Link outlet to the salesperson
       }
     });
     res.status(201).json(outlet);
   } catch (err) {
+    console.error("Outlet Creation Error:", err);
+    if (err.message.includes('Foreign key constraint violated')) {
+      return res.status(400).json({ error: "User session invalid or user deleted. Please logout and login again." });
+    }
     res.status(500).json({ error: err.message });
   }
 });

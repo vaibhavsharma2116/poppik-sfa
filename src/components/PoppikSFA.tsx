@@ -1363,12 +1363,24 @@ const PoppikSFA: React.FC = () => {
   const handleAddClient = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/outlets', outletForm);
-      alert("Client Added Successfully!");
+      // Include current location if available
+      const payload = {
+        ...outletForm,
+        latitude: lastKnownLocation?.lat || null,
+        longitude: lastKnownLocation?.lng || null
+      };
+      
+      await api.post('/outlets', payload);
+      alert("Client Registered Successfully!");
       setOutletForm({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '' });
       fetchOutlets();
-      setCurrentScreen('dashboard');
-    } catch (err: any) { alert("Failed to add client"); }
+      setIsRegisteringNewOutlet(false);
+      // If we are on createOrder screen, searchQuery will filter the new outlet
+    } catch (err: any) { 
+      console.error("Registration Error:", err);
+      const errorMsg = err.response?.data?.error || "Failed to add client. Please try logging out and in again.";
+      alert(errorMsg); 
+    }
   };
 
   const renderRegistrationForm = () => (
