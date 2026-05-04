@@ -513,7 +513,8 @@ const AttendanceView: React.FC<{
   visitImage: File | null,
   setVisitImage: (f: File | null) => void,
   onSubmitVisit: (type: 'ORDER' | 'NO_ORDER', reason?: string) => void,
-  isSubmittingVisit: boolean
+  isSubmittingVisit: boolean,
+  setIsRegisteringNewOutlet: (v: boolean) => void
 }> = ({ 
   outlets, 
   activeOutlet, 
@@ -528,7 +529,8 @@ const AttendanceView: React.FC<{
   visitImage, 
   setVisitImage,
   onSubmitVisit,
-  isSubmittingVisit
+  isSubmittingVisit,
+  setIsRegisteringNewOutlet
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -685,7 +687,7 @@ const AttendanceView: React.FC<{
                 We couldn't find any outlet matching "{searchQuery}". Would you like to add it?
               </p>
               <button 
-                onClick={() => setCurrentScreen('addClient')}
+                onClick={() => setIsRegisteringNewOutlet(true)}
                 className="px-8 py-4 bg-poppik-pink text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-pink-100 hover:bg-pink-600 transition-all flex items-center"
               >
                 <Plus size={16} className="mr-2" />
@@ -885,6 +887,7 @@ const PoppikSFA: React.FC = () => {
   const [loginForm, setLoginForm] = useState({ phone: '8888888888', password: 'sales123', name: '', role: 'sales' });
   const [outletForm, setOutletForm] = useState({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '' });
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegisteringNewOutlet, setIsRegisteringNewOutlet] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [visitFlowStep, setVisitFlowStep] = useState<'list' | 'visitForm'>('list');
   const [visitNotes, setVisitNotes] = useState('');
@@ -1367,6 +1370,205 @@ const PoppikSFA: React.FC = () => {
       setCurrentScreen('dashboard');
     } catch (err: any) { alert("Failed to add client"); }
   };
+
+  const renderRegistrationForm = () => (
+    <div className="fixed inset-0 z-[2000] bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6 animate-in fade-in duration-300">
+      <div className="bg-slate-50 w-full max-w-4xl h-[92vh] md:h-auto md:max-h-[90vh] overflow-y-auto rounded-t-[32px] md:rounded-[48px] shadow-2xl animate-in slide-in-from-bottom-10 md:slide-in-from-bottom-0 md:zoom-in-95 duration-300 custom-scrollbar">
+        <div className="sticky top-0 bg-white/90 backdrop-blur-md px-5 py-4 md:px-10 md:py-6 border-b border-slate-100 flex items-center justify-between z-10">
+          <div className="flex items-center space-x-3 md:space-x-4">
+            <div className="w-9 h-9 md:w-12 md:h-12 bg-poppik-pink/10 rounded-xl flex items-center justify-center">
+              <Plus className="w-5 h-5 md:w-6 md:h-6 text-poppik-pink" />
+            </div>
+            <div>
+              <h3 className="text-lg md:text-2xl font-black text-slate-800">Register New Outlet</h3>
+              <p className="text-[8px] md:text-xs text-slate-400 font-black uppercase tracking-widest">Add partner to Poppik network</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsRegisteringNewOutlet(false)}
+            className="p-2 md:p-3 bg-slate-100 text-slate-400 hover:text-slate-600 rounded-xl md:rounded-2xl transition-colors"
+          >
+            <X className="w-5 h-5 md:w-6 md:h-6" />
+          </button>
+        </div>
+
+        <div className="p-5 md:p-10">
+          <form onSubmit={async (e) => { await handleAddClient(e); setIsRegisteringNewOutlet(false); }} className="space-y-5 md:space-y-8">
+            {/* Section 1: Shop Information */}
+            <div className="bg-white p-5 md:p-10 rounded-2xl md:rounded-[40px] border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-3 mb-5 md:mb-8">
+                <div className="w-9 h-9 md:w-10 md:h-10 bg-slate-50 rounded-lg md:rounded-xl flex items-center justify-center">
+                  <Building2 className="w-4 h-4 md:w-5 md:h-5 text-poppik-pink" />
+                </div>
+                <h4 className="text-sm md:text-lg font-black text-slate-800 uppercase tracking-wider">Shop Details</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Shop/Outlet Name</label>
+                  <div className="relative">
+                    <Store className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={outletForm.name} 
+                      onChange={e => setOutletForm({...outletForm, name: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold text-sm md:text-base" 
+                      placeholder="e.g. Modern Cosmetics" 
+                      required 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Beat / Route Name</label>
+                  <div className="relative">
+                    <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={outletForm.beat_name} 
+                      onChange={e => setOutletForm({...outletForm, beat_name: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold text-sm md:text-base" 
+                      placeholder="e.g. North Jaipur Route" 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">GST Number</label>
+                  <div className="relative">
+                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={outletForm.gstNumber} 
+                      onChange={e => setOutletForm({...outletForm, gstNumber: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold text-sm md:text-base" 
+                      placeholder="15-digit GSTIN" 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Outlet Class</label>
+                  <div className="relative">
+                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 z-10" />
+                    <select 
+                      value={outletForm.class} 
+                      onChange={e => setOutletForm({...outletForm, class: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-10 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold appearance-none relative text-sm md:text-base"
+                    >
+                        <option value="A_PLUS">A+ (Premium)</option>
+                        <option value="A">A (High Potential)</option>
+                        <option value="B_PLUS">B+ (Moderate Plus)</option>
+                        <option value="B">B (Moderate)</option>
+                        <option value="C_PLUS">C+ (Standard Plus)</option>
+                        <option value="C">C (Standard)</option>
+                    </select>
+                    <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 rotate-90" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Contact Person Details */}
+            <div className="bg-white p-5 md:p-10 rounded-2xl md:rounded-[40px] border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-3 mb-5 md:mb-8">
+                <div className="w-9 h-9 md:w-10 md:h-10 bg-slate-50 rounded-lg md:rounded-xl flex items-center justify-center">
+                  <User className="w-4 h-4 md:w-5 md:h-5 text-poppik-gold" />
+                </div>
+                <h4 className="text-sm md:text-lg font-black text-slate-800 uppercase tracking-wider">Contact Person</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Owner / Manager Name</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={outletForm.owner_name} 
+                      onChange={e => setOutletForm({...outletForm, owner_name: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold text-sm md:text-base" 
+                      placeholder="Full Name" 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Mobile Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={outletForm.owner_no} 
+                      onChange={e => setOutletForm({...outletForm, owner_no: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold text-sm md:text-base" 
+                      placeholder="10-digit mobile" 
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Location Details */}
+            <div className="bg-white p-5 md:p-10 rounded-2xl md:rounded-[40px] border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-3 mb-5 md:mb-8">
+                <div className="w-9 h-9 md:w-10 md:h-10 bg-slate-50 rounded-lg md:rounded-xl flex items-center justify-center">
+                  <MapPin className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
+                </div>
+                <h4 className="text-sm md:text-lg font-black text-slate-800 uppercase tracking-wider">Location Info</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-5 md:mb-8">
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Area / Landmark</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={outletForm.area} 
+                      onChange={e => setOutletForm({...outletForm, area: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold text-sm md:text-base" 
+                      placeholder="Locality" 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">City</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={outletForm.city} 
+                      onChange={e => setOutletForm({...outletForm, city: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold text-sm md:text-base" 
+                      placeholder="e.g. Jaipur" 
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-1.5 md:space-y-2">
+                <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Full Address</label>
+                <div className="relative">
+                  <Pencil className="absolute left-4 top-5 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
+                  <textarea 
+                    value={outletForm.address} 
+                    onChange={e => setOutletForm({...outletForm, address: e.target.value})} 
+                    className="w-full pl-11 md:pl-12 pr-4 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold h-24 md:h-32 resize-none text-sm md:text-base" 
+                    placeholder="Complete shop address..." 
+                    required
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full py-4 md:py-6 bg-poppik-pink text-white text-base md:text-xl font-black rounded-xl md:rounded-3xl shadow-2xl shadow-pink-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-3 mt-4"
+            >
+              <CloudUpload className="w-5 h-5 md:w-6 md:h-6" />
+              <span>Register & Add Client</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 
   const handleLogout = () => {
     setToken(null);
@@ -2118,6 +2320,9 @@ const PoppikSFA: React.FC = () => {
 
   return (
     <div className="app-container">
+      {/* Global Modals */}
+      {isRegisteringNewOutlet && renderRegistrationForm()}
+
       <aside className={`fixed inset-y-0 left-0 z-[1030] w-72 bg-slate-900 text-white transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
          <div className="h-full flex flex-col p-8">
             <div className="flex items-center justify-between mb-12">
@@ -2339,191 +2544,91 @@ const PoppikSFA: React.FC = () => {
              )}
 
              {currentScreen === 'addClient' && (
-              <ScreenWrapper title="Add New Client" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
-                <div className="max-w-3xl mx-auto px-4 md:px-0 space-y-6 md:space-y-8">
-                  {/* Form Header */}
-                  <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm flex items-center space-x-4 md:space-x-6">
-                    <div className="w-12 h-12 md:w-16 md:h-16 bg-poppik-pink/10 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
-                      <Plus className="w-6 h-6 md:w-8 md:h-8 text-poppik-pink" />
+              <ScreenWrapper title="Clients & Registration" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+                <div className="max-w-4xl mx-auto px-4 md:px-0 space-y-8 md:space-y-12 pb-20">
+                  
+                  {/* Search & Existing Clients List */}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl md:text-2xl font-black text-slate-800">Existing Clients</h3>
+                      <span className="px-4 py-1.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {outlets.length} Total
+                      </span>
                     </div>
-                    <div>
-                      <h3 className="text-xl md:text-2xl font-black text-slate-800">Outlet Registration</h3>
-                      <p className="text-sm md:text-base text-slate-500 font-medium">Add a new partner to the Poppik network.</p>
+
+                    <div className="relative group">
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6" />
+                      <input 
+                        type="text" 
+                        placeholder="Search existing clients to contact..." 
+                        value={searchQuery} 
+                        onChange={(e) => setSearchQuery(e.target.value)} 
+                        className="w-full pl-14 pr-6 py-5 text-lg bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-poppik-pink/10 shadow-sm transition-all" 
+                      />
                     </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+                      {outlets.filter(o => (o.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || (o.area?.toLowerCase() || '').includes(searchQuery.toLowerCase())).slice(0, searchQuery ? 100 : 6).map(outlet => (
+                        <div key={outlet.id} className="bg-white p-4 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm hover:border-poppik-pink hover:shadow-xl transition-all group flex flex-col h-full">
+                          <div className="mb-4 md:mb-8 flex-1">
+                            <div className="flex items-center justify-between mb-3 md:mb-4">
+                                <div className="bg-slate-50 p-2 md:p-3 rounded-xl md:rounded-2xl text-poppik-pink group-hover:bg-poppik-pink group-hover:text-white transition-colors">
+                                  <Store className="w-4 h-4 md:w-6 md:h-6" />
+                                </div>
+                                <span className="text-[8px] md:text-xs font-black text-poppik-gold bg-poppik-gold/10 px-2 py-1 md:px-3 md:py-1.5 rounded-full uppercase">
+                                  {outlet.class?.replace('_', '+')}
+                                </span>
+                            </div>
+                            <h3 className="text-sm md:text-xl font-black text-slate-800 mb-2 md:mb-4 group-hover:text-poppik-pink transition-colors line-clamp-2">
+                              {outlet.name}
+                            </h3>
+                            <p className="text-[10px] md:text-sm text-slate-500 flex items-center mb-1 md:mb-2 font-bold">
+                              <User className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 text-slate-400" /> 
+                              <span className="truncate">{outlet.owner_name || 'Owner'}</span>
+                            </p>
+                            <p className="text-[10px] md:text-sm text-slate-500 flex items-center font-bold">
+                              <Phone className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 text-slate-400" /> 
+                              <span className="truncate">{outlet.owner_no || 'No Number'}</span>
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2 md:space-x-3">
+                            <a 
+                              href={`tel:${outlet.owner_no}`}
+                              className="flex-1 py-2.5 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl hover:bg-blue-600 transition-all transform active:scale-95 flex items-center justify-center shadow-lg shadow-black/10"
+                            >
+                              <Phone className="w-4 h-4 md:w-5 md:h-5" />
+                            </a>
+                            <a 
+                              href={`https://wa.me/91${outlet.owner_no?.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 py-2.5 md:py-4 bg-green-500 text-white rounded-xl md:rounded-2xl hover:bg-green-600 transition-all transform active:scale-95 flex items-center justify-center shadow-lg shadow-green-900/20"
+                            >
+                              <MessageCircle className="w-4 h-4 md:w-5 md:h-5" />
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {!searchQuery && outlets.length > 6 && (
+                      <div className="text-center">
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Search to see more clients</p>
+                      </div>
+                    )}
                   </div>
 
-                  <form onSubmit={handleAddClient} className="space-y-6 md:space-y-8 pb-12">
-                    {/* Section 1: Shop Information */}
-                    <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm">
-                      <div className="flex items-center space-x-3 mb-6 md:mb-8">
-                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-poppik-pink" />
-                        </div>
-                        <h4 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-wider">Shop Details</h4>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Shop/Outlet Name</label>
-                          <div className="relative">
-                            <Store className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input 
-                              type="text" 
-                              value={outletForm.name} 
-                              onChange={e => setOutletForm({...outletForm, name: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
-                              placeholder="e.g. Modern Cosmetics" 
-                              required 
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Beat / Route Name</label>
-                          <div className="relative">
-                            <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input 
-                              type="text" 
-                              value={outletForm.beat_name} 
-                              onChange={e => setOutletForm({...outletForm, beat_name: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
-                              placeholder="e.g. North Jaipur Route" 
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">GST Number</label>
-                          <div className="relative">
-                            <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input 
-                              type="text" 
-                              value={outletForm.gstNumber} 
-                              onChange={e => setOutletForm({...outletForm, gstNumber: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
-                              placeholder="15-digit GSTIN" 
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Outlet Class</label>
-                          <div className="relative">
-                            <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
-                            <select 
-                              value={outletForm.class} 
-                              onChange={e => setOutletForm({...outletForm, class: e.target.value})} 
-                              className="w-full pl-12 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold appearance-none relative"
-                            >
-                               <option value="A_PLUS">A+ (Premium)</option>
-                               <option value="A">A (High Potential)</option>
-                               <option value="B_PLUS">B+ (Moderate Plus)</option>
-                               <option value="B">B (Moderate)</option>
-                               <option value="C_PLUS">C+ (Standard Plus)</option>
-                               <option value="C">C (Standard)</option>
-                            </select>
-                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 rotate-90" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Section 2: Contact Person Details */}
-                    <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm">
-                      <div className="flex items-center space-x-3 mb-6 md:mb-8">
-                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                          <User className="w-5 h-5 text-poppik-gold" />
-                        </div>
-                        <h4 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-wider">Contact Person</h4>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Owner / Manager Name</label>
-                          <div className="relative">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input 
-                              type="text" 
-                              value={outletForm.owner_name} 
-                              onChange={e => setOutletForm({...outletForm, owner_name: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
-                              placeholder="Full Name" 
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Mobile Number</label>
-                          <div className="relative">
-                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input 
-                              type="text" 
-                              value={outletForm.owner_no} 
-                              onChange={e => setOutletForm({...outletForm, owner_no: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
-                              placeholder="10-digit mobile" 
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Section 3: Location Details */}
-                    <div className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[40px] border border-slate-200 shadow-sm">
-                      <div className="flex items-center space-x-3 mb-6 md:mb-8">
-                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                          <MapPin className="w-5 h-5 text-red-500" />
-                        </div>
-                        <h4 className="text-base md:text-lg font-black text-slate-800 uppercase tracking-wider">Location Info</h4>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 mb-6 md:mb-8">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Area / Landmark</label>
-                          <div className="relative">
-                            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input 
-                              type="text" 
-                              value={outletForm.area} 
-                              onChange={e => setOutletForm({...outletForm, area: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
-                              placeholder="Locality" 
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">City</label>
-                          <div className="relative">
-                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input 
-                              type="text" 
-                              value={outletForm.city} 
-                              onChange={e => setOutletForm({...outletForm, city: e.target.value})} 
-                              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold" 
-                              placeholder="e.g. Jaipur" 
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Full Address</label>
-                        <div className="relative">
-                          <Pencil className="absolute left-4 top-5 w-5 h-5 text-slate-400" />
-                          <textarea 
-                            value={outletForm.address} 
-                            onChange={e => setOutletForm({...outletForm, address: e.target.value})} 
-                            className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold h-32 resize-none" 
-                            placeholder="Complete shop address..." 
-                            required
-                          ></textarea>
-                        </div>
-                      </div>
-                    </div>
-
+                  {/* Button to open registration form */}
+                  <div className="text-center">
                     <button 
-                      type="submit" 
-                      className="w-full py-5 md:py-6 bg-poppik-pink text-white text-lg md:text-xl font-black rounded-2xl md:rounded-3xl shadow-2xl shadow-pink-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-3"
+                      onClick={() => setIsRegisteringNewOutlet(true)}
+                      className="px-10 py-5 bg-poppik-pink text-white font-black rounded-[32px] shadow-2xl shadow-pink-900/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-3 mx-auto"
                     >
-                      <CloudUpload className="w-6 h-6" />
-                      <span>Register & Add Client</span>
+                      <Plus className="w-6 h-6" />
+                      <span>Register New Partner</span>
                     </button>
-                  </form>
+                  </div>
                 </div>
               </ScreenWrapper>
             )}
@@ -2569,7 +2674,7 @@ const PoppikSFA: React.FC = () => {
                             }
                             {/* Option to add even if results exist */}
                             <button 
-                              onClick={() => { setCurrentScreen('addClient'); setSearchQuery(''); }}
+                              onClick={() => { setIsRegisteringNewOutlet(true); setSearchQuery(''); }}
                               className="w-full p-6 bg-slate-50 hover:bg-poppik-beige flex items-center justify-center space-x-2 text-poppik-pink font-bold border-t border-slate-100 transition-colors"
                             >
                               <Plus className="w-5 h-5" />
@@ -2584,7 +2689,7 @@ const PoppikSFA: React.FC = () => {
                             <h4 className="text-xl font-black text-slate-800 mb-2">Client Not Found</h4>
                             <p className="text-slate-500 mb-8 max-w-xs mx-auto font-medium">We couldn't find any outlet matching "{searchQuery}". Would you like to add it?</p>
                             <button 
-                              onClick={() => { setCurrentScreen('addClient'); setSearchQuery(''); }} 
+                              onClick={() => { setIsRegisteringNewOutlet(true); setSearchQuery(''); }} 
                               className="px-10 py-4 bg-poppik-pink text-white font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-pink-900/20 flex items-center justify-center space-x-2 mx-auto"
                             >
                               <Plus className="w-5 h-5" />
@@ -2641,7 +2746,7 @@ const PoppikSFA: React.FC = () => {
                         It looks like you haven't added any clients to your route. Let's register your first outlet to start taking orders.
                       </p>
                       <button 
-                        onClick={() => setCurrentScreen('addClient')} 
+                        onClick={() => setIsRegisteringNewOutlet(true)} 
                         className="px-8 py-4 md:px-12 md:py-5 bg-poppik-pink text-white text-base md:text-lg font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-pink-900/20 flex items-center justify-center space-x-3"
                       >
                         <Plus className="w-6 h-6" />
@@ -3339,6 +3444,7 @@ const PoppikSFA: React.FC = () => {
                   setVisitImage={setVisitImage}
                   onSubmitVisit={submitVisit}
                   isSubmittingVisit={isSubmittingVisit}
+                  setIsRegisteringNewOutlet={setIsRegisteringNewOutlet}
                 />
               </ScreenWrapper>
             )}
