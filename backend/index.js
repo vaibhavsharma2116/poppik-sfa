@@ -118,8 +118,6 @@ const isAdmin = (req, res, next) => {
 };
 
 // Helper functions
-const generateRefreshToken = () => crypto.randomBytes(64).toString('hex');
-
 // --- Auth APIs ---
 app.post('/api/auth/register', async (req, res) => {
   const { name, phone, password, role } = req.body;
@@ -149,25 +147,7 @@ app.post('/api/auth/login', async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.passwordHash);
     if (!validPassword) return res.status(401).json({ error: "Invalid password" });
 
-    const accessToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
-    const refreshToken = generateRefreshToken();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId: user.id,
-        expiresAt
-      }
-    });
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      expires: expiresAt
-    });
+    const accessToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' }); // 7 days instead of 24h
 
     res.json({ token: accessToken, user: { id: user.id, name: user.name, role: user.role, phone: user.phone, createdAt: user.createdAt } });
   } catch (err) {
@@ -175,62 +155,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.post('/api/auth/refresh', async (req, res) => {
-  const { refreshToken } = req.cookies;
-  if (!refreshToken) return res.status(401).json({ error: "Refresh token required" });
-
-  try {
-    const storedToken = await prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
-      include: { user: true }
-    });
-
-    if (!storedToken || storedToken.expiresAt < new Date()) {
-      if (storedToken) {
-        await prisma.refreshToken.delete({ where: { id: storedToken.id } });
-      }
-      return res.status(403).json({ error: "Invalid or expired refresh token" });
-    }
-
-    const newAccessToken = jwt.sign({ id: storedToken.user.id, role: storedToken.user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
-    const newRefreshToken = generateRefreshToken();
-    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-    await prisma.$transaction([
-      prisma.refreshToken.delete({ where: { id: storedToken.id } }),
-      prisma.refreshToken.create({
-        data: {
-          token: newRefreshToken,
-          userId: storedToken.user.id,
-          expiresAt: newExpiresAt
-        }
-      })
-    ]);
-
-    res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      expires: newExpiresAt
-    });
-
-    res.json({ token: newAccessToken });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 app.post('/api/auth/logout', async (req, res) => {
-  const { refreshToken } = req.cookies;
-  if (refreshToken) {
-    try {
-      await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
-    } catch (err) {
-      // Ignore errors
-    }
-  }
-  res.clearCookie('refreshToken', { path: '/' });
   res.json({ message: "Logged out successfully" });
 });
 

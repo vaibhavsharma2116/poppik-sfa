@@ -1006,77 +1006,20 @@ const PoppikSFA: React.FC = () => {
     };
   }, [token, user, isPunchedIn]);
 
-  // Refresh token state to prevent multiple concurrent refresh calls
-  let isRefreshing = false;
-  let failedQueue: Array<{
-    resolve: (token: string) => void;
-    reject: (error: any) => void;
-  }> = [];
-
-  const processQueue = (error: any, token: string | null = null) => {
-    failedQueue.forEach(prom => {
-      if (error) {
-        prom.reject(error);
-      } else {
-        prom.resolve(token as string);
-      }
-    });
-    failedQueue = [];
-  };
-
   // Axios Config
   const api = React.useMemo(() => {
     const instance = axios.create({
       baseURL: API_BASE,
       headers: { Authorization: `Bearer ${token}` },
-      withCredentials: true
     });
 
-    // Response interceptor for refresh token logic
+    // Simple response interceptor: logout on 401/403 errors
     instance.interceptors.response.use(
       (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-
+      (error) => {
         if (error.response?.status === 401 || error.response?.status === 403) {
-          if (!originalRequest._retry) {
-            if (isRefreshing) {
-              try {
-                const newToken = await new Promise<string>((resolve, reject) => {
-                  failedQueue.push({ resolve, reject });
-                });
-                originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                return instance(originalRequest);
-              } catch (queueError) {
-                return Promise.reject(queueError);
-              }
-            }
-
-            originalRequest._retry = true;
-            isRefreshing = true;
-
-            try {
-              const refreshRes = await axios.post(`${API_BASE}/auth/refresh`, {}, {
-                withCredentials: true
-              });
-              const newAccessToken = refreshRes.data.token;
-              
-              setToken(newAccessToken);
-              safeStorage.setItem('token', newAccessToken);
-              processQueue(null, newAccessToken);
-              
-              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-              return instance(originalRequest);
-            } catch (refreshError) {
-              processQueue(refreshError, null);
-              handleLogout();
-              return Promise.reject(refreshError);
-            } finally {
-              isRefreshing = false;
-            }
-          }
+          handleLogout();
         }
-
         return Promise.reject(error);
       }
     );
