@@ -23,6 +23,16 @@ model User {
   orders         Order[]
   outlets        Outlet[]
   visits         Visit[]
+  refreshTokens  RefreshToken[]
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model Leave {
@@ -58,23 +68,24 @@ model Attendance {
 }
 
 model Outlet {
-  id         Int          @id @default(autoincrement())
-  name       String
-  beat_name  String?
-  area       String?
-  city       String?
-  owner_name String?
-  owner_no   String?
-  class      OutletClass? @default(C)
-  gstNumber  String?
-  address    String
-  latitude   Float?
-  longitude  Float?
-  userId     Int?
-  createdAt  DateTime     @default(now())
-  orders     Order[]
-  visits     Visit[]
-  user       User?        @relation(fields: [userId], references: [id])
+  id             Int          @id @default(autoincrement())
+  name           String
+  beat_name      String?
+  area           String?
+  city           String?
+  owner_name     String?
+  owner_no       String?
+  class          OutletClass? @default(C)
+  gstNumber      String?
+  address        String
+  latitude       Float?
+  longitude      Float?
+  userId         Int?
+  createdAt      DateTime     @default(now())
+  orders         Order[]
+  visits         Visit[]
+  user           User?        @relation(fields: [userId], references: [id])
+  outletCategory String?      // "BA" or "Non BA"
 }
 
 model Product {

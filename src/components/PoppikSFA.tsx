@@ -160,7 +160,7 @@ const createSafeStorage = () => {
 const safeStorage = createSafeStorage();
 
 // Types
-type Screen = 'dashboard' | 'createOrder' | 'addClient' | 'reports' | 'productCatalog' | 'cart' | 'login' | 'adminDashboard' | 'adminUsers' | 'adminAddUser' | 'adminEditUser' | 'adminReports' | 'orders' | 'profile' | 'attendance' | 'adminLeaves' | 'inventory' | 'notifications' | 'outletAction';
+type Screen = 'dashboard' | 'createOrder' | 'addClient' | 'reports' | 'productCatalog' | 'cart' | 'login' | 'adminDashboard' | 'adminUsers' | 'adminAddUser' | 'adminEditUser' | 'adminReports' | 'orders' | 'profile' | 'attendance' | 'adminLeaves' | 'inventory' | 'notifications' | 'outletAction' | 'leaves';
 
 interface Outlet {
   id: number;
@@ -815,7 +815,7 @@ const PoppikSFA: React.FC = () => {
       savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
     } catch (e) { savedUser = null; }
 
-    const validScreens: Screen[] = ['dashboard', 'createOrder', 'addClient', 'reports', 'productCatalog', 'cart', 'login', 'adminDashboard', 'adminUsers', 'adminAddUser', 'adminEditUser', 'adminReports', 'orders', 'profile', 'inventory', 'notifications'];
+    const validScreens: Screen[] = ['dashboard', 'createOrder', 'addClient', 'reports', 'productCatalog', 'cart', 'login', 'adminDashboard', 'adminUsers', 'adminAddUser', 'adminEditUser', 'adminReports', 'orders', 'profile', 'inventory', 'notifications', 'attendance', 'leaves', 'adminLeaves'];
     
     // 1. Check URL Hash first (Best for refresh)
     const hash = window.location.hash.replace('#', '') as Screen;
@@ -837,7 +837,7 @@ const PoppikSFA: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '') as Screen;
-      const validScreens: Screen[] = ['dashboard', 'createOrder', 'addClient', 'reports', 'productCatalog', 'cart', 'login', 'adminDashboard', 'adminUsers', 'adminAddUser', 'adminEditUser', 'adminReports', 'orders', 'profile', 'attendance', 'adminLeaves', 'inventory', 'notifications'];
+      const validScreens: Screen[] = ['dashboard', 'createOrder', 'addClient', 'reports', 'productCatalog', 'cart', 'login', 'adminDashboard', 'adminUsers', 'adminAddUser', 'adminEditUser', 'adminReports', 'orders', 'profile', 'attendance', 'adminLeaves', 'inventory', 'notifications', 'leaves'];
       if (hash && validScreens.includes(hash) && hash !== currentScreen) {
         setCurrentScreen(hash);
       }
@@ -877,15 +877,18 @@ const PoppikSFA: React.FC = () => {
   const [adminStats, setAdminStats] = useState<any>(null);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminReports, setAdminReports] = useState<any[]>([]);
+  const [adminReportPeriod, setAdminReportPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('all');
   const [adminLeaves, setAdminLeaves] = useState<Leave[]>([]);
   const [editingUser, setEditingUser] = useState<any>(null);
 
   const [visitReason, setVisitReason] = useState('');
   const [otherReason, setOtherReason] = useState('');
   const [isSubmittingVisit, setIsSubmittingVisit] = useState(false);
+  const [userLeaves, setUserLeaves] = useState<any[]>([]);
+  const [leaveForm, setLeaveForm] = useState({ startDate: '', endDate: '', reason: '' });
 
   const [loginForm, setLoginForm] = useState({ phone: '8888888888', password: 'sales123', name: '', role: 'sales' });
-  const [outletForm, setOutletForm] = useState({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '' });
+  const [outletForm, setOutletForm] = useState({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '', outletCategory: '' });
   const [isRegistering, setIsRegistering] = useState(false);
   const [isRegisteringNewOutlet, setIsRegisteringNewOutlet] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -973,7 +976,8 @@ const PoppikSFA: React.FC = () => {
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude
             }, {
-              headers: { Authorization: `Bearer ${token}` }
+              headers: { Authorization: `Bearer ${token}` },
+              withCredentials: true
             });
             console.log("Live location updated:", pos.coords.latitude, pos.coords.longitude);
           } catch (err) {
@@ -1002,20 +1006,77 @@ const PoppikSFA: React.FC = () => {
     };
   }, [token, user, isPunchedIn]);
 
+  // Refresh token state to prevent multiple concurrent refresh calls
+  let isRefreshing = false;
+  let failedQueue: Array<{
+    resolve: (token: string) => void;
+    reject: (error: any) => void;
+  }> = [];
+
+  const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+      if (error) {
+        prom.reject(error);
+      } else {
+        prom.resolve(token as string);
+      }
+    });
+    failedQueue = [];
+  };
+
   // Axios Config
   const api = React.useMemo(() => {
     const instance = axios.create({
       baseURL: API_BASE,
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true
     });
 
-    // Logout on 401 Unauthorized or 403 Forbidden (Invalid token)
+    // Response interceptor for refresh token logic
     instance.interceptors.response.use(
       (response) => response,
-      (error) => {
+      async (error) => {
+        const originalRequest = error.config;
+
         if (error.response?.status === 401 || error.response?.status === 403) {
-          handleLogout();
+          if (!originalRequest._retry) {
+            if (isRefreshing) {
+              try {
+                const newToken = await new Promise<string>((resolve, reject) => {
+                  failedQueue.push({ resolve, reject });
+                });
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return instance(originalRequest);
+              } catch (queueError) {
+                return Promise.reject(queueError);
+              }
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+              const refreshRes = await axios.post(`${API_BASE}/auth/refresh`, {}, {
+                withCredentials: true
+              });
+              const newAccessToken = refreshRes.data.token;
+              
+              setToken(newAccessToken);
+              safeStorage.setItem('token', newAccessToken);
+              processQueue(null, newAccessToken);
+              
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+              return instance(originalRequest);
+            } catch (refreshError) {
+              processQueue(refreshError, null);
+              handleLogout();
+              return Promise.reject(refreshError);
+            } finally {
+              isRefreshing = false;
+            }
+          }
         }
+
         return Promise.reject(error);
       }
     );
@@ -1044,6 +1105,7 @@ const PoppikSFA: React.FC = () => {
         fetchReports();
         fetchAttendanceStatus();
         fetchNotifications();
+        fetchUserLeaves();
       }
     } else {
       console.log("[AUTH] No token found during initial load");
@@ -1073,7 +1135,7 @@ const PoppikSFA: React.FC = () => {
         }
       }
     }
-  }, [currentScreen, token, user]);
+  }, [currentScreen, token, user, adminReportPeriod]);
 
   // Sync Pending Orders when online
   useEffect(() => {
@@ -1197,7 +1259,7 @@ const PoppikSFA: React.FC = () => {
       const [statsRes, usersRes, reportsRes, leavesRes] = await Promise.allSettled([
         api.get('/admin/stats'),
         api.get('/admin/users'),
-        api.get('/admin/sales-reports'),
+        api.get(`/admin/sales-reports?period=${adminReportPeriod}`),
         api.get('/admin/leaves')
       ]);
 
@@ -1220,6 +1282,25 @@ const PoppikSFA: React.FC = () => {
       const res = await api.get('/admin/leaves');
       setAdminLeaves(res.data);
     } catch (err) { console.error("Error fetching admin leaves", err); }
+  };
+
+  const fetchUserLeaves = async () => {
+    try {
+      const res = await api.get('/leaves');
+      setUserLeaves(res.data);
+    } catch (err) { console.error("Error fetching user leaves", err); }
+  };
+
+  const submitLeave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/leaves', leaveForm);
+      alert("Leave request submitted successfully!");
+      setLeaveForm({ startDate: '', endDate: '', reason: '' });
+      fetchUserLeaves();
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to submit leave request");
+    }
   };
 
   const deleteUser = async (id: number) => {
@@ -1296,7 +1377,7 @@ const PoppikSFA: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_BASE}/auth/login`, loginForm);
+      const res = await axios.post(`${API_BASE}/auth/login`, loginForm, { withCredentials: true });
       
       // Safety check for response structure
       if (!res.data || typeof res.data !== 'object') {
@@ -1372,7 +1453,7 @@ const PoppikSFA: React.FC = () => {
       
       await api.post('/outlets', payload);
       alert("Client Registered Successfully!");
-      setOutletForm({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '' });
+      setOutletForm({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '', outletCategory: '' });
       fetchOutlets();
       setIsRegisteringNewOutlet(false);
       // If we are on createOrder screen, searchQuery will filter the new outlet
@@ -1471,6 +1552,22 @@ const PoppikSFA: React.FC = () => {
                         <option value="B">B (Moderate)</option>
                         <option value="C_PLUS">C+ (Standard Plus)</option>
                         <option value="C">C (Standard)</option>
+                    </select>
+                    <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 rotate-90" />
+                  </div>
+                </div>
+                <div className="space-y-1.5 md:space-y-2">
+                  <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Outlet Category</label>
+                  <div className="relative">
+                    <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 z-10" />
+                    <select 
+                      value={outletForm.outletCategory} 
+                      onChange={e => setOutletForm({...outletForm, outletCategory: e.target.value})} 
+                      className="w-full pl-11 md:pl-12 pr-10 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold appearance-none relative text-sm md:text-base"
+                    >
+                        <option value="">Select Category</option>
+                        <option value="BA">BA</option>
+                        <option value="Non BA">Non BA</option>
                     </select>
                     <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 rotate-90" />
                   </div>
@@ -1582,7 +1679,12 @@ const PoppikSFA: React.FC = () => {
     </div>
   );
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true });
+    } catch (err) {
+      // Ignore errors
+    }
     setToken(null);
     setUser(null);
     safeStorage.removeItem('token');
@@ -1747,46 +1849,38 @@ const PoppikSFA: React.FC = () => {
     doc.text(`Mobile: ${order.outlet.owner_no || 'N/A'}`, 15, 86);
     doc.text(`State: Rajasthan`, 15, 91);
     
+    // Calculate total MRP
+    const totalMRP = order.orderItems.reduce((sum, item) => sum + (item.product.mrp || 0) * item.quantity, 0);
+
     // Items Table
     const tableData = order.orderItems.map((item) => {
-      // Handle GST percentage correctly (if 0.18 -> 18)
-      let gstPercent = item.product.gst || 0;
-      if (gstPercent > 0 && gstPercent < 1) gstPercent = gstPercent * 100;
-      if (gstPercent === 0) gstPercent = 18; // Default to 18 if not set
-
-      const taxable = item.priceAtTime / (1 + (gstPercent / 100));
-      const taxAmount = (item.priceAtTime - taxable) * item.quantity;
       return [
         `${item.product.name}\n${item.product.productCode || ''} | ${item.product.boxSize || ''}`,
         item.product.hsn || "N/A",
         `${item.quantity}`,
         `${(item.product.mrp || 0).toLocaleString()}`,
-        taxable.toFixed(2),
-        `${taxAmount.toFixed(2)}\n(${gstPercent}%)`,
-        (item.quantity * item.priceAtTime).toLocaleString()
+        `${((item.product.mrp || 0) * item.quantity).toLocaleString()}`
       ];
     });
 
     autoTable(doc, {
       startY: 100,
-      head: [['ITEMS & CODE', 'HSN', 'QTY', 'MRP', 'RATE', 'TAX', 'AMOUNT']],
+      head: [['ITEMS & CODE', 'HSN', 'QTY', 'MRP', 'AMOUNT']],
       body: tableData,
       theme: 'plain',
       headStyles: { 
         textColor: [50, 50, 50], 
         fontStyle: 'bold', 
         fontSize: 8,
-        halign: 'center' // Default head alignment
+        halign: 'center'
       },
       styles: { fontSize: 8, cellPadding: 3, textColor: [50, 50, 50], halign: 'center' },
       columnStyles: {
-        0: { cellWidth: 55, halign: 'left' },
-        1: { cellWidth: 20, halign: 'center' },
-        2: { cellWidth: 15, halign: 'center' },
-        3: { cellWidth: 20, halign: 'right' },
-        4: { cellWidth: 25, halign: 'right' },
-        5: { cellWidth: 25, halign: 'right' },
-        6: { cellWidth: 25, halign: 'right' }
+        0: { cellWidth: 70, halign: 'left' },
+        1: { cellWidth: 25, halign: 'center' },
+        2: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 25, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' }
       },
       didParseCell: function(data) {
         if (data.section === 'head') {
@@ -1804,40 +1898,25 @@ const PoppikSFA: React.FC = () => {
     doc.setFont("helvetica", "bold");
     doc.text("SUBTOTAL", 15, finalY + 7);
     const totalQty = order.orderItems.reduce((s, i) => s + i.quantity, 0);
-    doc.text(totalQty.toString(), 97.5, finalY + 7, { align: "center" });
-    doc.text(order.totalAmount.toLocaleString(), pageWidth - 15, finalY + 7, { align: "right" });
+    doc.text(totalQty.toString(), 120, finalY + 7, { align: "center" });
+    doc.text(totalMRP.toLocaleString(), pageWidth - 15, finalY + 7, { align: "right" });
     doc.line(15, finalY + 10, pageWidth - 15, finalY + 10);
     
     const summaryY = finalY + 20;
     
-    // Totals Section - Calculate weighted tax
-    const taxableTotal = order.orderItems.reduce((sum, item) => {
-        let gstPercent = item.product.gst || 0;
-        if (gstPercent > 0 && gstPercent < 1) gstPercent = gstPercent * 100;
-        if (gstPercent === 0) gstPercent = 18;
-        return sum + (item.priceAtTime / (1 + (gstPercent / 100))) * item.quantity;
-    }, 0);
-    const taxTotal = order.totalAmount - taxableTotal;
-    
-    doc.setFontSize(9);
-    doc.text("TAXABLE AMOUNT", 140, summaryY + 5);
-    doc.text(taxableTotal.toLocaleString(undefined, {minimumFractionDigits: 2}), pageWidth - 15, summaryY + 5, { align: "right" });
-    doc.text("GST TOTAL", 140, summaryY + 10);
-    doc.text(taxTotal.toLocaleString(undefined, {minimumFractionDigits: 2}), pageWidth - 15, summaryY + 10, { align: "right" });
-    
-    doc.line(140, summaryY + 13, pageWidth - 15, summaryY + 13);
+    doc.line(140, summaryY + 5, pageWidth - 15, summaryY + 5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0);
     doc.setFontSize(10);
-    doc.text("TOTAL AMOUNT", 140, summaryY + 18);
-    doc.text(order.totalAmount.toLocaleString(), pageWidth - 15, summaryY + 18, { align: "right" });
+    doc.text("TOTAL AMOUNT", 140, summaryY + 10);
+    doc.text(totalMRP.toLocaleString(), pageWidth - 15, summaryY + 10, { align: "right" });
     
     // Amount in words
     doc.setFont("helvetica", "bold");
-    doc.text("Total Amount (in words)", pageWidth - 15, summaryY + 50, { align: "right" });
+    doc.text("Total Amount (in words)", pageWidth - 15, summaryY + 20, { align: "right" });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(numberToWords(order.totalAmount), pageWidth - 15, summaryY + 55, { align: "right" });
+    doc.text(numberToWords(totalMRP), pageWidth - 15, summaryY + 25, { align: "right" });
     
     doc.save(`Invoice_${order.id}_${order.outlet.name.replace(/\s+/g, '_')}.pdf`);
   };
@@ -2375,6 +2454,7 @@ const PoppikSFA: React.FC = () => {
                    <div className="pt-6 pb-2 px-4"><p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Personal</p></div>
                    
                    <SidebarNavItem icon={<ShoppingCart />} label="Order History" screen="orders" current={currentScreen} onClick={setCurrentScreen} />
+                   <SidebarNavItem icon={<Calendar />} label="My Leaves" screen="leaves" current={currentScreen} onClick={setCurrentScreen} />
                    <SidebarNavItem icon={<User />} label="My Account" screen="profile" current={currentScreen} onClick={setCurrentScreen} />
                  </>
                )}
@@ -2392,7 +2472,7 @@ const PoppikSFA: React.FC = () => {
             </div>
             <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-slate-100 rounded-xl transition-all active:scale-95 shadow-sm"><Menu className="w-6 h-6 text-slate-600" /></button>
          </div>
-         <div className="flex-1 overflow-y-auto pt-16 md:pt-0">
+         <div className="flex-1 overflow-y-auto pt-16 md:pt-0 pb-8">
             {currentScreen === 'dashboard' && (
                <ScreenWrapper title="Dashboard" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
                  <div className="space-y-6 md:space-y-8">
@@ -2426,11 +2506,12 @@ const PoppikSFA: React.FC = () => {
                   </div>
 
                   {/* 4-Card Dashboard for Salesman */}
-                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
                     <DashboardCard icon={<Clock />} title="Visit" onClick={() => setCurrentScreen('attendance')} color="text-blue-600" />
                     <DashboardCard icon={<ShoppingCart />} title="Create Order" onClick={() => setCurrentScreen('createOrder')} color="text-orange-600" />
                     <DashboardCard icon={<User />} title="Our Clients" onClick={() => setCurrentScreen('addClient')} color="text-poppik-gold" />
                     <DashboardCard icon={<BarChart3 />} title="Reports" onClick={() => setCurrentScreen('reports')} color="text-purple-600" />
+                    <DashboardCard icon={<Calendar />} title="Leaves" onClick={() => setCurrentScreen('leaves')} color="text-green-600" />
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
@@ -3460,6 +3541,77 @@ const PoppikSFA: React.FC = () => {
                 />
               </ScreenWrapper>
             )}
+            
+            {currentScreen === 'leaves' && (
+              <ScreenWrapper title="My Leaves" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')} onViewAllNotifications={() => setCurrentScreen('notifications')} markAllRead={markAllRead}>
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                    {/* Request New Leave */}
+                    <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm">
+                      <h3 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> Request New Leave</h3>
+                      <form onSubmit={submitLeave} className="space-y-5">
+                        <div>
+                          <label className="block text-xs md:text-sm font-black text-slate-400 uppercase mb-2 ml-1">Start Date</label>
+                          <input 
+                            type="date" 
+                            value={leaveForm.startDate} 
+                            onChange={e => setLeaveForm({...leaveForm, startDate: e.target.value})}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs md:text-sm font-black text-slate-400 uppercase mb-2 ml-1">End Date</label>
+                          <input 
+                            type="date" 
+                            value={leaveForm.endDate} 
+                            onChange={e => setLeaveForm({...leaveForm, endDate: e.target.value})}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs md:text-sm font-black text-slate-400 uppercase mb-2 ml-1">Reason</label>
+                          <textarea 
+                            value={leaveForm.reason} 
+                            onChange={e => setLeaveForm({...leaveForm, reason: e.target.value})}
+                            rows={4}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold resize-none"
+                            placeholder="Enter reason for leave..."
+                            required
+                          />
+                        </div>
+                        <button type="submit" className="w-full py-4 bg-poppik-pink text-white font-black rounded-xl md:rounded-2xl shadow-lg shadow-pink-900/20 hover:scale-[1.02] active:scale-95 transition-all">
+                          Submit Leave Request
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Leave History */}
+                    <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm">
+                      <h3 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Clock className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> Leave History</h3>
+                      <div className="space-y-4">
+                        {userLeaves.map(leave => (
+                          <div key={leave.id} className="p-4 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100">
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-500">Duration</p>
+                                <p className="font-bold text-sm md:text-base text-slate-800">{new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}</p>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${leave.status === 'Approved' ? 'bg-green-100 text-green-700' : leave.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                {leave.status}
+                              </span>
+                            </div>
+                            <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">{leave.reason}</p>
+                          </div>
+                        ))}
+                        {userLeaves.length === 0 && <p className="text-slate-400 text-xs md:text-sm italic text-center py-8">No leave requests yet</p>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ScreenWrapper>
+            )}
 
             {currentScreen === 'inventory' && (
               <ScreenWrapper title="Inventory Management" user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
@@ -3716,15 +3868,31 @@ const PoppikSFA: React.FC = () => {
             {currentScreen === 'adminReports' && (
               <ScreenWrapper title="Sales Performance Analysis" showBack backAction={() => setCurrentScreen('adminDashboard')} user={user} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} isOnline={isOnline} pendingSyncCount={pendingOrders.length} notifications={notifications} onSync={syncOrders} onProfileClick={() => setCurrentScreen('profile')}>
                 <div className="space-y-6 md:space-y-8">
-                   <div className="flex justify-between items-center mb-2">
+                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
                       <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] md:text-xs">Team Wise Activity</p>
-                      <button 
-                        onClick={downloadAdminTeamReport}
-                        className="px-4 py-2 bg-poppik-pink text-white font-black rounded-xl text-[10px] md:text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-pink-900/10 flex items-center space-x-2"
-                      >
-                        <CloudUpload className="w-4 h-4" />
-                        <span>Download All Reports</span>
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <select 
+                            value={adminReportPeriod}
+                            onChange={(e) => setAdminReportPeriod(e.target.value as any)}
+                            className="pl-4 pr-10 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[10px] md:text-xs font-bold text-slate-700 outline-none transition-all appearance-none"
+                          >
+                            <option value="all">All Time</option>
+                            <option value="day">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="year">This Year</option>
+                          </select>
+                          <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 rotate-90 pointer-events-none" />
+                        </div>
+                        <button 
+                          onClick={downloadAdminTeamReport}
+                          className="px-4 py-2 bg-poppik-pink text-white font-black rounded-xl text-[10px] md:text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-pink-900/10 flex items-center space-x-2"
+                        >
+                          <CloudUpload className="w-4 h-4" />
+                          <span>Download All Reports</span>
+                        </button>
+                      </div>
                    </div>
                    {adminReports.map(salesman => (
                      <div key={salesman.id} className="bg-white rounded-[32px] border border-slate-200 overflow-hidden shadow-sm">
@@ -4340,6 +4508,8 @@ const PoppikSFA: React.FC = () => {
           </div>
         </div>
       )}
+      
+
     </div>
   );
 };

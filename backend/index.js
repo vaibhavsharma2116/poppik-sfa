@@ -9,13 +9,19 @@ const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const cookieParser = require('cookie-parser');
 
 dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -111,6 +117,9 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
+// Helper functions
+const generateRefreshToken = () => crypto.randomBytes(64).toString('hex');
+
 // --- Auth APIs ---
 app.post('/api/auth/register', async (req, res) => {
   const { name, phone, password, role } = req.body;
@@ -140,11 +149,89 @@ app.post('/api/auth/login', async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.passwordHash);
     if (!validPassword) return res.status(401).json({ error: "Invalid password" });
 
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
-    res.json({ token, user: { id: user.id, name: user.name, role: user.role, phone: user.phone, createdAt: user.createdAt } });
+    const accessToken = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    const refreshToken = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt
+      }
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      expires: expiresAt
+    });
+
+    res.json({ token: accessToken, user: { id: user.id, name: user.name, role: user.role, phone: user.phone, createdAt: user.createdAt } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.post('/api/auth/refresh', async (req, res) => {
+  const { refreshToken } = req.cookies;
+  if (!refreshToken) return res.status(401).json({ error: "Refresh token required" });
+
+  try {
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+      include: { user: true }
+    });
+
+    if (!storedToken || storedToken.expiresAt < new Date()) {
+      if (storedToken) {
+        await prisma.refreshToken.delete({ where: { id: storedToken.id } });
+      }
+      return res.status(403).json({ error: "Invalid or expired refresh token" });
+    }
+
+    const newAccessToken = jwt.sign({ id: storedToken.user.id, role: storedToken.user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    const newRefreshToken = generateRefreshToken();
+    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    await prisma.$transaction([
+      prisma.refreshToken.delete({ where: { id: storedToken.id } }),
+      prisma.refreshToken.create({
+        data: {
+          token: newRefreshToken,
+          userId: storedToken.user.id,
+          expiresAt: newExpiresAt
+        }
+      })
+    ]);
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      expires: newExpiresAt
+    });
+
+    res.json({ token: newAccessToken });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  const { refreshToken } = req.cookies;
+  if (refreshToken) {
+    try {
+      await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
+    } catch (err) {
+      // Ignore errors
+    }
+  }
+  res.clearCookie('refreshToken', { path: '/' });
+  res.json({ message: "Logged out successfully" });
 });
 
 // --- Admin APIs ---
@@ -266,6 +353,25 @@ app.get('/api/admin/stats', authenticateToken, isAdmin, async (req, res) => {
 app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res) => {
   try {
     console.log("[ADMIN_REPORTS] Fetching reports for all sales users...");
+    const { period = 'all' } = req.query;
+    
+    // Calculate start date based on period
+    let startDate = null;
+    const now = new Date();
+    
+    if (period === 'day') {
+      startDate = new Date(now);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'week') {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - now.getDay());
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    }
+
     const reports = await prisma.user.findMany({
       where: { role: 'sales' },
       select: {
@@ -273,6 +379,7 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
         name: true,
         phone: true,
         orders: {
+          where: startDate ? { createdAt: { gte: startDate } } : {},
           include: {
             outlet: true,
             orderItems: {
@@ -285,6 +392,7 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
           take: 1
         },
         visits: {
+          where: startDate ? { timestamp: { gte: startDate } } : {},
           select: {
             id: true,
             outletId: true,
@@ -346,7 +454,10 @@ app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res)
               product: item.product ? {
                 name: item.product.name,
                 productCode: item.product.productCode || 'N/A',
-                boxSize: item.product.boxSize || 'N/A'
+                boxSize: item.product.boxSize || 'N/A',
+                hsn: item.product.hsn || 'N/A',
+                gst: item.product.gst || 0,
+                mrp: item.product.mrp || 0
               } : { name: 'Unknown Product' },
               quantity: item.quantity || 0,
               priceAtTime: item.priceAtTime || 0
@@ -664,7 +775,7 @@ app.get('/api/outlets', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/outlets', authenticateToken, async (req, res) => {
-  const { name, beat_name, area, city, owner_name, owner_no, class: outletClass, address, latitude, longitude, gstNumber } = req.body;
+  const { name, beat_name, area, city, owner_name, owner_no, class: outletClass, address, latitude, longitude, gstNumber, outletCategory } = req.body;
   try {
     // Validate that req.user.id exists and is a valid number
     const userId = parseInt(req.user.id);
@@ -685,6 +796,7 @@ app.post('/api/outlets', authenticateToken, async (req, res) => {
         latitude: latitude ? parseFloat(latitude) : null, 
         longitude: longitude ? parseFloat(longitude) : null, 
         gstNumber,
+        outletCategory,
         userId: userId // Link outlet to the salesperson
       }
     });
@@ -1022,7 +1134,10 @@ app.get('/api/reports/party-wise', authenticateToken, async (req, res) => {
             name: item.product.name,
             productCode: item.product.productCode,
             boxSize: item.product.boxSize,
-            price: item.product.price
+            price: item.product.price,
+            hsn: item.product.hsn,
+            gst: item.product.gst,
+            mrp: item.product.mrp
           } : null
         })),
         items: (order.orderItems || []).map(item => ({
@@ -1099,7 +1214,10 @@ app.get('/api/reports/location-wise', authenticateToken, async (req, res) => {
             name: item.product.name,
             productCode: item.product.productCode,
             boxSize: item.product.boxSize,
-            price: item.product.price
+            price: item.product.price,
+            hsn: item.product.hsn,
+            gst: item.product.gst,
+            mrp: item.product.mrp
           } : null
         })),
         items: (order.orderItems || []).map(item => ({
