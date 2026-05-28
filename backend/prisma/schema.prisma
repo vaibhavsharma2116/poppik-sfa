@@ -41,6 +41,7 @@ model Leave {
   startDate DateTime
   endDate   DateTime
   reason    String
+  type      String   @default("Leave")
   status    String   @default("Pending")
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

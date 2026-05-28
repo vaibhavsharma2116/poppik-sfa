@@ -268,6 +268,8 @@ interface Leave {
   startDate: string;
   endDate: string;
   reason: string;
+  type: string;
+  remark?: string;
   status: string;
   createdAt: string;
   user?: { name: string };
@@ -885,7 +887,7 @@ const PoppikSFA: React.FC = () => {
   const [otherReason, setOtherReason] = useState('');
   const [isSubmittingVisit, setIsSubmittingVisit] = useState(false);
   const [userLeaves, setUserLeaves] = useState<any[]>([]);
-  const [leaveForm, setLeaveForm] = useState({ startDate: '', endDate: '', reason: '' });
+  const [leaveForm, setLeaveForm] = useState({ startDate: '', endDate: '', reason: '', type: 'Leave' });
 
   const [loginForm, setLoginForm] = useState({ phone: '8888888888', password: 'sales123', name: '', role: 'sales' });
   const [outletForm, setOutletForm] = useState({ name: '', beat_name: '', area: '', city: '', owner_name: '', owner_no: '', class: 'C', address: '', gstNumber: '', outletCategory: '' });
@@ -1239,7 +1241,7 @@ const PoppikSFA: React.FC = () => {
     try {
       await api.post('/leaves', leaveForm);
       alert("Leave request submitted successfully!");
-      setLeaveForm({ startDate: '', endDate: '', reason: '' });
+      setLeaveForm({ startDate: '', endDate: '', reason: '', type: 'Leave' });
       fetchUserLeaves();
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to submit leave request");
@@ -3494,6 +3496,17 @@ const PoppikSFA: React.FC = () => {
                       <h3 className="text-lg md:text-xl font-black text-slate-800 mb-6 flex items-center"><Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 text-poppik-pink" /> Request New Leave</h3>
                       <form onSubmit={submitLeave} className="space-y-5">
                         <div>
+                          <label className="block text-xs md:text-sm font-black text-slate-400 uppercase mb-2 ml-1">Leave Type</label>
+                          <select
+                            value={leaveForm.type}
+                            onChange={e => setLeaveForm({...leaveForm, type: e.target.value})}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl focus:ring-4 focus:ring-poppik-pink/10 focus:bg-white focus:border-poppik-pink outline-none transition-all font-bold"
+                          >
+                            <option value="Leave">Leave</option>
+                            <option value="Weekly Off">Weekly Off</option>
+                          </select>
+                        </div>
+                        <div>
                           <label className="block text-xs md:text-sm font-black text-slate-400 uppercase mb-2 ml-1">Start Date</label>
                           <input 
                             type="date" 
@@ -3538,14 +3551,18 @@ const PoppikSFA: React.FC = () => {
                           <div key={leave.id} className="p-4 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100">
                             <div className="flex justify-between items-start mb-3">
                               <div>
-                                <p className="text-xs font-black uppercase tracking-widest text-slate-500">Duration</p>
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-500">Type</p>
+                                <p className="font-bold text-sm md:text-base text-slate-800">{leave.type || 'Leave'}</p>
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-500 mt-2">Duration</p>
                                 <p className="font-bold text-sm md:text-base text-slate-800">{new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}</p>
                               </div>
                               <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${leave.status === 'Approved' ? 'bg-green-100 text-green-700' : leave.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
                                 {leave.status}
                               </span>
                             </div>
-                            <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">{leave.reason}</p>
+                            <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed">
+                              <strong>Reason:</strong> {leave.reason}
+                            </p>
                           </div>
                         ))}
                         {userLeaves.length === 0 && <p className="text-slate-400 text-xs md:text-sm italic text-center py-8">No leave requests yet</p>}
@@ -3929,6 +3946,7 @@ const PoppikSFA: React.FC = () => {
                         <thead>
                           <tr className="border-b border-slate-100">
                             <th className="pb-4 font-black text-slate-400 uppercase text-xs">Salesman</th>
+                            <th className="pb-4 font-black text-slate-400 uppercase text-xs">Type</th>
                             <th className="pb-4 font-black text-slate-400 uppercase text-xs">Duration</th>
                             <th className="pb-4 font-black text-slate-400 uppercase text-xs">Reason</th>
                             <th className="pb-4 font-black text-slate-400 uppercase text-xs">Status</th>
@@ -3939,6 +3957,7 @@ const PoppikSFA: React.FC = () => {
                           {adminLeaves.map(leave => (
                             <tr key={leave.id} className="hover:bg-slate-50/50 transition-colors">
                               <td className="py-6 font-bold text-slate-800">{leave.user?.name}</td>
+                              <td className="py-6 text-sm text-slate-700 font-bold">{leave.type || 'Leave'}</td>
                               <td className="py-6">
                                 <p className="font-bold text-slate-700 text-sm">{new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}</p>
                                 <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">Leave Duration</p>
@@ -3985,7 +4004,7 @@ const PoppikSFA: React.FC = () => {
                           ))}
                           {adminLeaves.length === 0 && (
                             <tr>
-                              <td colSpan={5} className="py-12 text-center text-slate-400 font-bold italic">No leave applications to manage</td>
+                              <td colSpan={6} className="py-12 text-center text-slate-400 font-bold italic">No leave applications to manage</td>
                             </tr>
                           )}
                         </tbody>

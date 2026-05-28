@@ -737,7 +737,7 @@ app.post('/api/outlets', authenticateToken, async (req, res) => {
 
 // --- Leave APIs ---
 app.post('/api/leaves', authenticateToken, async (req, res) => {
-  const { startDate, endDate, reason } = req.body;
+  const { startDate, endDate, reason, type } = req.body;
   try {
     const leave = await prisma.leave.create({
       data: {
@@ -745,6 +745,7 @@ app.post('/api/leaves', authenticateToken, async (req, res) => {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         reason,
+        type: type || 'Leave',
         status: 'Pending'
       }
     });
