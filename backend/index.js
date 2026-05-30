@@ -17,6 +17,76 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
+// In-memory cache for caching utility
+class Cache {
+  constructor(defaultTTL = 10000) {
+    this.cache = new Map();
+    this.defaultTTL = defaultTTL;
+  }
+
+  get(key) {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.data;
+  }
+
+  set(key, data, ttl = this.defaultTTL) {
+    this.cache.set(key, {
+      data,
+      expiresAt: Date.now() + ttl
+    });
+  }
+
+  invalidate(pattern) {
+    if (!pattern) {
+      this.cache.clear();
+      return;
+    }
+    for (const key of this.cache.keys()) {
+      if (key.includes(pattern)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+}
+
+const cache = new Cache(10000); // 10 seconds default TTL
+
+// Cache middleware to wrap handlers
+const createCacheKey = (req) => {
+  return `${req.method}:${req.originalUrl}:${req.user?.id || 'public'}`;
+};
+
+const cacheMiddleware = (ttl = 10000) => {
+  return (req, res, next) => {
+    if (req.method !== 'GET') {
+      // Invalidate cache for non-GET requests
+      cache.invalidate(req.baseUrl);
+      return next();
+    }
+
+    const key = createCacheKey(req);
+    const cachedData = cache.get(key);
+
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
+    // Override res.json to cache the response
+    const originalJson = res.json;
+    res.json = function(data) {
+      cache.set(key, data, ttl);
+      return originalJson.call(this, data);
+    };
+
+    next();
+  };
+};
+
 app.use(cors({
   origin: true,
   credentials: true
@@ -160,7 +230,7 @@ app.post('/api/auth/logout', async (req, res) => {
 });
 
 // --- Admin APIs ---
-app.get('/api/admin/live-map', authenticateToken, isAdmin, async (req, res) => {
+app.get('/api/admin/live-map', authenticateToken, isAdmin, cacheMiddleware(5000), async (req, res) => {
   try {
     const activeUsers = await prisma.user.findMany({
       where: { 
@@ -209,7 +279,7 @@ app.get('/api/admin/live-map', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/admin/sales-analytics', authenticateToken, isAdmin, async (req, res) => {
+app.get('/api/admin/sales-analytics', authenticateToken, isAdmin, cacheMiddleware(15000), async (req, res) => {
   try {
     const productSales = await prisma.orderItem.groupBy({
       by: ['productId'],
@@ -238,7 +308,7 @@ app.get('/api/admin/sales-analytics', authenticateToken, isAdmin, async (req, re
   }
 });
 
-app.get('/api/admin/inventory-alerts', authenticateToken, isAdmin, async (req, res) => {
+app.get('/api/admin/inventory-alerts', authenticateToken, isAdmin, cacheMiddleware(10000), async (req, res) => {
   try {
     const lowStockProducts = await prisma.product.findMany({
       where: {
@@ -251,7 +321,7 @@ app.get('/api/admin/inventory-alerts', authenticateToken, isAdmin, async (req, r
   }
 });
 
-app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
+app.get('/api/admin/users', authenticateToken, isAdmin, cacheMiddleware(10000), async (req, res) => {
   try {
     const users = await prisma.user.findMany({
       select: { id: true, name: true, phone: true, role: true, createdAt: true }
@@ -262,7 +332,7 @@ app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/admin/stats', authenticateToken, isAdmin, async (req, res) => {
+app.get('/api/admin/stats', authenticateToken, isAdmin, cacheMiddleware(10000), async (req, res) => {
   try {
     const [userCount, orderCount, outletCount] = await Promise.all([
       prisma.user.count(),
@@ -275,7 +345,7 @@ app.get('/api/admin/stats', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/admin/sales-reports', authenticateToken, isAdmin, async (req, res) => {
+app.get('/api/admin/sales-reports', authenticateToken, isAdmin, cacheMiddleware(15000), async (req, res) => {
   try {
     console.log("[ADMIN_REPORTS] Fetching reports for all sales users...");
     const { period = 'all' } = req.query;
@@ -569,7 +639,7 @@ app.put('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) => 
 });
 
 // --- Notification APIs ---
-app.get('/api/notifications', authenticateToken, async (req, res) => {
+app.get('/api/notifications', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user.id },
@@ -595,7 +665,7 @@ app.post('/api/notifications/mark-read', authenticateToken, async (req, res) => 
 });
 
 // --- Attendance APIs ---
-app.get('/api/attendance/status', authenticateToken, async (req, res) => {
+app.get('/api/attendance/status', authenticateToken, cacheMiddleware(5000), async (req, res) => {
   try {
     const lastAttendance = await prisma.attendance.findFirst({
       where: { userId: req.user.id },
@@ -671,7 +741,7 @@ app.post('/api/attendance/update-location', authenticateToken, async (req, res) 
 });
 
 // --- Product APIs ---
-app.get('/api/products', async (req, res) => {
+app.get('/api/products', cacheMiddleware(30000), async (req, res) => {
   try {
     const products = await prisma.product.findMany();
     res.json(products);
@@ -681,7 +751,7 @@ app.get('/api/products', async (req, res) => {
 });
 
 // --- Outlet APIs ---
-app.get('/api/outlets', authenticateToken, async (req, res) => {
+app.get('/api/outlets', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     const where = {};
     // If user is not admin, only show their own outlets
@@ -755,7 +825,7 @@ app.post('/api/leaves', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/leaves', authenticateToken, async (req, res) => {
+app.get('/api/leaves', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     const leaves = await prisma.leave.findMany({
       where: { userId: req.user.id },
@@ -768,7 +838,7 @@ app.get('/api/leaves', authenticateToken, async (req, res) => {
 });
 
 // Admin view for leaves
-app.get('/api/admin/leaves', authenticateToken, isAdmin, async (req, res) => {
+app.get('/api/admin/leaves', authenticateToken, isAdmin, cacheMiddleware(10000), async (req, res) => {
   try {
     const leaves = await prisma.leave.findMany({
       include: { user: true },
@@ -835,7 +905,7 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/orders', authenticateToken, async (req, res) => {
+app.get('/api/orders', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       where: { userId: req.user.id },
@@ -898,7 +968,7 @@ app.post('/api/visits', authenticateToken, upload.single('photo'), async (req, r
   }
 });
 
-app.get('/api/visits', authenticateToken, async (req, res) => {
+app.get('/api/visits', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     const visits = await prisma.visit.findMany({
       where: { userId: req.user.id },
@@ -923,7 +993,7 @@ app.get('/api/visits', authenticateToken, async (req, res) => {
 });
 
 // --- Reporting APIs ---
-app.get('/api/reports/summary', authenticateToken, async (req, res) => {
+app.get('/api/reports/summary', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     const { period = 'day' } = req.query;
     console.log(`[REPORTS] ${period}-wise summary requested by User ID: ${req.user.id}`);
@@ -989,7 +1059,7 @@ app.get('/api/reports/day-wise', authenticateToken, async (req, res) => {
   res.redirect(`/api/reports/summary?period=day`);
 });
 
-app.get('/api/reports/party-wise', authenticateToken, async (req, res) => {
+app.get('/api/reports/party-wise', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     console.log(`[REPORTS] Party-wise report requested by User ID: ${req.user.id}`);
     
@@ -1091,7 +1161,7 @@ app.get('/api/reports/party-wise', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/reports/location-wise', authenticateToken, async (req, res) => {
+app.get('/api/reports/location-wise', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     console.log(`[REPORTS] Location-wise report requested by User ID: ${req.user.id}`);
     const orders = await prisma.order.findMany({
@@ -1178,7 +1248,7 @@ app.get('/api/reports/location-wise', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/reports/product-wise', authenticateToken, async (req, res) => {
+app.get('/api/reports/product-wise', authenticateToken, cacheMiddleware(10000), async (req, res) => {
   try {
     console.log(`[REPORTS] Product-wise report requested by User ID: ${req.user.id}`);
     const orderItems = await prisma.orderItem.findMany({

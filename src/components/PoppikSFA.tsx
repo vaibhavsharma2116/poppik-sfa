@@ -966,6 +966,8 @@ const PoppikSFA: React.FC = () => {
   // Live location tracking for punched-in users
   useEffect(() => {
     let watchId: number | null = null;
+    let lastSentTime = 0;
+    const THROTTLE_INTERVAL = 10000; // 10 seconds between location updates
     
     if (token && user?.role === 'sales' && isPunchedIn && navigator.geolocation) {
       console.log("Starting live movement tracking...");
@@ -973,17 +975,21 @@ const PoppikSFA: React.FC = () => {
       watchId = navigator.geolocation.watchPosition(
         async (pos) => {
           setLastKnownLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          try {
-            await axios.post(`${API_BASE}/attendance/update-location`, {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude
-            }, {
-              headers: { Authorization: `Bearer ${token}` },
-              withCredentials: true
-            });
-            console.log("Live location updated:", pos.coords.latitude, pos.coords.longitude);
-          } catch (err) {
-            console.error("Failed to update live location", err);
+          const now = Date.now();
+          if (now - lastSentTime >= THROTTLE_INTERVAL) {
+            try {
+              await axios.post(`${API_BASE}/attendance/update-location`, {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+              }, {
+                headers: { Authorization: `Bearer ${token}` },
+                withCredentials: true
+              });
+              console.log("Live location updated:", pos.coords.latitude, pos.coords.longitude);
+              lastSentTime = now;
+            } catch (err) {
+              console.error("Failed to update live location", err);
+            }
           }
         },
         (err) => {
@@ -994,7 +1000,7 @@ const PoppikSFA: React.FC = () => {
         },
         { 
           enableHighAccuracy: true, 
-          maximumAge: 0, // Don't use cached position
+          maximumAge: 5000, // Allow 5 second cached position
           timeout: 10000 // 10 seconds timeout
         }
       );
