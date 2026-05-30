@@ -50,12 +50,15 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ token }) => {
   const [salesData, setSalesData] = useState<any[]>([]);
   const [inventoryAlerts, setInventoryAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false); // New state to prevent race conditions
 
   const api = React.useMemo(() => axios.create({
     headers: { Authorization: `Bearer ${token}` }
   }), [token]);
 
   const fetchData = async () => {
+    if (isFetching) return; // Prevent overlapping requests
+    setIsFetching(true);
     try {
       // Use individual try-catch or settled promises to prevent one failure from blocking all data
       const results = await Promise.allSettled([
@@ -72,12 +75,13 @@ const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({ token }) => {
       console.error("Error fetching admin view data", err);
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   };
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Update every 30s
+    const interval = setInterval(fetchData, 300000); // Update every 5 minutes (300000 ms)
     return () => clearInterval(interval);
   }, [token]);
 

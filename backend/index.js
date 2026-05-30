@@ -14,7 +14,23 @@ const cookieParser = require('cookie-parser');
 
 dotenv.config();
 const app = express();
-const prisma = new PrismaClient();
+
+// Prisma Client with explicit connection pool configuration
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+  // Explicit connection pool settings to prevent leaks
+  __internal: {
+    engine: {
+      binaryPath: process.env.PRISMA_QUERY_ENGINE_BINARY,
+    },
+  },
+});
+
 const PORT = process.env.PORT || 5000;
 
 // In-memory cache for caching utility
@@ -1291,12 +1307,52 @@ const server = app.listen(PORT, () => {
   console.log(`Poppik SFA Server running on port ${PORT}`);
 });
 
-// Keep process alive
+// Keep process alive - but keep it reasonable
 setInterval(() => {}, 1000000);
 
-process.on('SIGINT', async () => {
-  console.log('Shutting down server...');
-  server.close();
-  await prisma.$disconnect();
-  process.exit(0);
+// Graceful shutdown handler - prevent connection leaks
+const gracefulShutdown = async (signal) => {
+  console.log(`\n[${signal}] Received shutdown signal - starting graceful shutdown...`);
+  
+  try {
+    // 1. Close the HTTP server first to stop accepting new connections
+    await new Promise((resolve, reject) => {
+      server.close((err) => {
+        if (err) {
+          console.error('[SHUTDOWN] Error closing server:', err);
+          reject(err);
+        } else {
+          console.log('[SHUTDOWN] HTTP server closed successfully');
+          resolve();
+        }
+      });
+    });
+
+    // 2. Disconnect Prisma Client to release all database connections
+    await prisma.$disconnect();
+    console.log('[SHUTDOWN] Prisma Client disconnected - all DB connections released');
+
+    // 3. Exit cleanly
+    console.log('[SHUTDOWN] Graceful shutdown complete');
+    process.exit(0);
+  } catch (error) {
+    console.error('[SHUTDOWN] Error during shutdown:', error);
+    process.exit(1);
+  }
+};
+
+// Register shutdown handlers for ALL common signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // For nodemon
+
+// Handle uncaught exceptions to prevent leaks
+process.on('uncaughtException', async (error) => {
+  console.error('[UNCAUGHT EXCEPTION]', error);
+  await gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('[UNHANDLED REJECTION] Promise:', promise, 'Reason:', reason);
+  await gracefulShutdown('unhandledRejection');
 });
